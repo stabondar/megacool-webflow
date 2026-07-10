@@ -7,10 +7,8 @@ import mkcert from 'vite-plugin-mkcert'
 export default defineConfig(
 {
     base: 'https://megacool-webflow.vercel.app/',
-    resolve:
-    {
-        alias:
-        {
+    resolve: {
+        alias: {
             '@src': path.resolve(__dirname, 'src'),
             '@comp': path.resolve(__dirname, 'src/components'),
             '@modules': path.resolve(__dirname, 'src/modules'),
@@ -19,17 +17,14 @@ export default defineConfig(
             '@utils': path.resolve(__dirname, 'src/utils'),
             '@styles': path.resolve(__dirname, 'src/css'),
             '@transitions': path.resolve(__dirname, 'src/transitions'),
-        }
+        },
     },
-    build:
-    {
+    build: {
         minify: true,
         manifest: true,
-        rollupOptions:
-        {
-            input:'index.html', // defining the entry point explicitly
-            output:
-            {
+        rollupOptions: {
+            input: 'index.html', // defining the entry point explicitly
+            output: {
                 dir: path.resolve(__dirname, 'dist'), // specify the output directory
                 format: 'es', // output format (ES modules)
                 chunkFileNames: '[name]-[hash].js',
@@ -39,36 +34,32 @@ export default defineConfig(
                 compact: true,
                 dynamicImportVars: true,
                 makeAbsoluteExternalsRelative: true,
-            }
-        }
+            },
+        },
     },
-    plugins:
-    [
+    plugins: [
         glsl(),
         // mkcert(
         // {
 
         // })
     ],
-    server:
-    {
+    server: {
         port: 4321, // server port
         // open: true, // open in browser automatically
         hot: true, // enable hot module replacement
-        cors:
-        {
+        cors: {
             origin: '*', // Allow all origins
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization']
+            allowedHeaders: ['Content-Type', 'Authorization'],
         },
-        allowedHosts: ['stabondar.ngrok.app'],
+        allowedHosts: ['stabondar.ngrok.app', '.trycloudflare.com'],
     },
-    preview:
-    {
-        port: 8080,  // specify the port to run the preview server on
+    preview: {
+        port: 8080, // specify the port to run the preview server on
         strictPort: true, // if true, the server will fail if the port is already in use
-        host: 'localhost',  // define the host, use '0.0.0.0' to expose server to network
-        https: false,  // set to true if you need to test with HTTPS
-        open: true
-    }
+        host: 'localhost', // define the host, use '0.0.0.0' to expose server to network
+        https: false, // set to true if you need to test with HTTPS
+        open: true,
+    },
 })
