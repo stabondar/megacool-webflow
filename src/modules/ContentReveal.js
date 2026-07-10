@@ -1,0 +1,340 @@
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import CustomEase from 'gsap/CustomEase'
+
+import { toNumber } from '@utils/Math'
+
+gsap.registerPlugin(ScrollTrigger, CustomEase)
+
+// Register the named 'punch' ease once so it can be referenced by string.
+if (!CustomEase.get('punch')) CustomEase.create('punch', 'M0,0 C0.19,1 0.22,1 1,1')
+
+const NESTED_SELECTOR = '[data-reveal-nested], [data-reveal-group-nested]'
+const READY_CLASS = 'cr-ready'
+const ANIM_DURATION = 0.8
+const ANIM_EASE = 'punch'
+const DEFAULT_STAGGER_MS = 60
+
+/**
+ * Convert a ScrollTrigger-style start ("top 80%", "top bottom", "top center")
+ * into the viewport ratio (0-1) at which the reveal should begin, so we can
+ * detect groups that are already at/past that point on page load.
+ */
+const parseStartRatio = (start) =>
+{
+    const cleaned = start.replace(/clamp\(|\)/g, '').trim()
+    const token = cleaned.split(/\s+/)[1] ?? '80%'
+    if (token.endsWith('%'))
+    {
+        const n = parseFloat(token)
+        return Number.isFinite(n) ? n / 100 : 0.8
+    }
+    if (token === 'bottom') return 1
+    if (token === 'center') return 0.5
+    if (token === 'top') return 0
+    const n = parseFloat(token)
+    return Number.isFinite(n) ? n : 0.8
+}
+
+/** True when the element's top is already at/above the reveal start on load. */
+const isAtOrPastStart = (el, ratio) => el.getBoundingClientRect().top <= window.innerHeight * ratio
+
+const getElementChildren = (el) => Array.from(el.children).filter((child) => child.nodeType === 1)
+
+const findNestedGroup = (child) =>
+{
+    if (child.matches(NESTED_SELECTOR)) return child
+    return child.querySelector(`:scope ${NESTED_SELECTOR}`)
+}
+
+const resetVisible = (groupEl) =>
+{
+    gsap.set(groupEl, { clearProps: 'all', y: 0, autoAlpha: 1 })
+    groupEl.querySelectorAll('*').forEach((node) =>
+    {
+        gsap.set(node, { clearProps: 'all', y: 0, autoAlpha: 1 })
+    })
+}
+
+const buildSlots = (groupEl) =>
+{
+    const slots = []
+
+    getElementChildren(groupEl).forEach((child) =>
+    {
+        const nestedGroup = findNestedGroup(child)
+
+        if (nestedGroup)
+        {
+            const includeParent =
+                child.getAttribute('data-ignore') !== 'true' &&
+                (child.getAttribute('data-ignore') === 'false' || nestedGroup.getAttribute('data-ignore') === 'false')
+
+            const nestedChildren = getElementChildren(nestedGroup).filter(
+                (el) => el.getAttribute('data-ignore') !== 'true'
+            )
+
+            slots.push({
+                type: 'nested',
+                parentEl: child,
+                nestedEl: nestedGroup,
+                includeParent,
+                nestedChildren,
+            })
+        }
+        else
+        {
+            if (child.getAttribute('data-ignore') === 'true') return
+            slots.push({ type: 'item', el: child })
+        }
+    })
+
+    return slots
+}
+
+const setHiddenState = (slots, groupDistance) =>
+{
+    slots.forEach((slot) =>
+    {
+        if (slot.type === 'item')
+        {
+            const isNestedSelf = slot.el.matches(NESTED_SELECTOR)
+            const distance = isNestedSelf ? groupDistance : slot.el.getAttribute('data-distance') || groupDistance
+            gsap.set(slot.el, { y: distance, autoAlpha: 0 })
+            return
+        }
+
+        if (slot.includeParent)
+        {
+            gsap.set(slot.parentEl, { y: groupDistance, autoAlpha: 0 })
+        }
+
+        const nestedDistance = slot.nestedEl.getAttribute('data-distance') || groupDistance
+        slot.nestedChildren.forEach((target) => gsap.set(target, { y: nestedDistance, autoAlpha: 0 }))
+    })
+
+    slots.forEach((slot) =>
+    {
+        if (slot.type === 'nested' && slot.includeParent)
+        {
+            gsap.set(slot.parentEl, { y: groupDistance })
+        }
+    })
+}
+
+const revealGroup = (groupEl, dataset, reduced) =>
+{
+    const groupStaggerSec = toNumber(dataset.stagger, DEFAULT_STAGGER_MS) / 1000
+    const groupDistance = dataset.distance || '2em'
+
+    // clamp() keeps the start reachable for groups near the bottom of the
+    // page (e.g. the footer) — without it the trigger position can sit beyond
+    // the max scroll, onEnter never fires, and the content stays hidden.
+    const rawStart = dataset.start || 'top 80%'
+    const triggerStart = rawStart.includes('clamp') ? rawStart : `clamp(${rawStart})`
+    const startRatio = parseStartRatio(rawStart)
+
+    if (reduced)
+    {
+        resetVisible(groupEl)
+        return
+    }
+
+    const playOnLoadOrScroll = (play) =>
+    {
+        if (isAtOrPastStart(groupEl, startRatio))
+        {
+            play()
+        }
+        else
+        {
+            ScrollTrigger.create({
+                trigger: groupEl,
+                start: triggerStart,
+                once: true,
+                onEnter: play,
+            })
+        }
+    }
+
+    const directChildren = getElementChildren(groupEl)
+
+    if (!directChildren.length)
+    {
+        gsap.set(groupEl, { y: groupDistance, autoAlpha: 0 })
+
+        let played = false
+        playOnLoadOrScroll(() =>
+        {
+            if (played) return
+            played = true
+            gsap.to(groupEl, {
+                y: 0,
+                autoAlpha: 1,
+                duration: ANIM_DURATION,
+                ease: ANIM_EASE,
+                onComplete: () =>
+                {
+                    gsap.set(groupEl, { clearProps: 'all' })
+                },
+            })
+        })
+        return
+    }
+
+    const slots = buildSlots(groupEl)
+    setHiddenState(slots, groupDistance)
+
+    let played = false
+    playOnLoadOrScroll(() =>
+    {
+        if (played) return
+        played = true
+
+        const tl = gsap.timeline()
+
+        slots.forEach((slot, slotIndex) =>
+        {
+            const slotTime = slotIndex * groupStaggerSec
+
+            if (slot.type === 'item')
+            {
+                tl.to(
+                    slot.el,
+                    {
+                        y: 0,
+                        autoAlpha: 1,
+                        duration: ANIM_DURATION,
+                        ease: ANIM_EASE,
+                        onComplete: () =>
+                        {
+                            gsap.set(slot.el, { clearProps: 'all' })
+                        },
+                    },
+                    slotTime
+                )
+                return
+            }
+
+            if (slot.includeParent)
+            {
+                tl.to(
+                    slot.parentEl,
+                    {
+                        y: 0,
+                        autoAlpha: 1,
+                        duration: ANIM_DURATION,
+                        ease: ANIM_EASE,
+                        onComplete: () =>
+                        {
+                            gsap.set(slot.parentEl, { clearProps: 'all' })
+                        },
+                    },
+                    slotTime
+                )
+            }
+
+            const nestedMs = parseFloat(slot.nestedEl.getAttribute('data-stagger') ?? '')
+            const nestedStaggerSec = Number.isFinite(nestedMs) ? nestedMs / 1000 : groupStaggerSec
+
+            slot.nestedChildren.forEach((nestedChild, nestedIndex) =>
+            {
+                tl.to(
+                    nestedChild,
+                    {
+                        y: 0,
+                        autoAlpha: 1,
+                        duration: ANIM_DURATION,
+                        ease: ANIM_EASE,
+                        onComplete: () =>
+                        {
+                            gsap.set(nestedChild, { clearProps: 'all' })
+                        },
+                    },
+                    slotTime + nestedIndex * nestedStaggerSec
+                )
+            })
+        })
+    })
+}
+
+/**
+ * Scroll-triggered staggered reveal for a group and its children.
+ *
+ * data-module="content-reveal" on the group wrapper.
+ *
+ * Group options: data-stagger="100" (ms), data-distance="2em", data-start="top 80%"
+ * Nested layer: data-reveal-nested (or data-reveal-group-nested)
+ * Skip element: data-ignore="true" | include parent: data-ignore="false"
+ * Per-child distance: data-distance on the child
+ */
+export default class ContentReveal
+{
+    constructor(instance, app, main)
+    {
+        this.instance = instance
+        this.app = app
+        this.main = main
+
+        this.destroyed = false
+
+        this.ctx = null
+        this.active = false
+
+        this.init()
+        this.app.on('resize', () => this.resize())
+        this.app.on('destroy', () => this.destroy())
+    }
+
+    // Reveal the wrapper only after the hidden state has been applied (CSS keeps
+    // it hidden until now) — prevents the flash of fully-visible content before
+    // the JS bundle runs.
+    reveal()
+    {
+        this.instance.classList.add(READY_CLASS)
+    }
+
+    init()
+    {
+        if (document.documentElement.classList.contains('w-editor')) return
+
+        this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+        this.start()
+    }
+
+    start()
+    {
+        if (this.reduced)
+        {
+            resetVisible(this.instance)
+            this.reveal()
+            return
+        }
+
+        if (this.active) return
+        this.active = true
+
+        if (this.ctx) this.ctx.revert()
+        this.ctx = gsap.context(() => revealGroup(this.instance, this.instance.dataset, this.reduced), this.instance)
+        this.reveal()
+        requestAnimationFrame(() => ScrollTrigger.refresh())
+    }
+
+    resize()
+    {
+        if (this.destroyed) return
+    }
+
+    destroy()
+    {
+        if (this.destroyed) return
+
+        this.destroyed = true
+
+        this.active = false
+        if (this.ctx) this.ctx.revert()
+        this.ctx = null
+        resetVisible(this.instance)
+    }
+}

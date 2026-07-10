@@ -10,7 +10,7 @@ export default class GlobalLoader
 
         // this.loader = document.querySelector('.loader')
 
-        gsap.to([this.main, 'nav'], {autoAlpha: 1})
+        gsap.set([this.main, 'nav'], { autoAlpha: 1 })
 
         // gsap.to(this.loader, {opacity: 0, onComplete: () =>
         // {

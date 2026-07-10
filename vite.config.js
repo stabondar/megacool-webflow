@@ -6,7 +6,7 @@ import mkcert from 'vite-plugin-mkcert'
 // vite.config.js
 export default defineConfig(
 {
-    base: 'https://domain.vercel.app/',
+    base: 'https://megacool-webflow.vercel.app/',
     resolve:
     {
         alias:
@@ -72,5 +72,3 @@ export default defineConfig(
         open: true
     }
 })
-
-

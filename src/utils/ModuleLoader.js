@@ -9,9 +9,6 @@ export default class ModuleLoader
     {
         try
         {
-            // const updateNavPromise = import('./UpdateNav.js').then((module) => new module.default(main, this.app))
-            // const atTopPromise = import('./AtTop.js').then((module) => new module.default(main, this.app))
-
             const elements = main.querySelectorAll('[data-module]')
 
             if (elements.length < 1) return
@@ -27,18 +24,30 @@ export default class ModuleLoader
                 {
                     if (!value || value.trim() === '') continue
 
-                    const modulePromise = import(`@modules/${value}.js`).then(
-                        (module) => new module.default(element, this.app, main)
-                    )
+                    // Webflow markup uses kebab-case values (data-module="text-reveal"),
+                    // module files are PascalCase (TextReveal.js)
+                    const fileName = this.toPascalCase(value)
+
+                    const modulePromise = import(`@modules/${fileName}.js`)
+                        .then((module) => new module.default(element, this.app, main))
+                        .catch((error) => console.warn(`Module "${fileName}" failed: ${error.message}`))
                     modulePromises.push(modulePromise)
                 }
             })
 
-            await Promise.all([...modulePromises, updateNavPromise, atTopPromise])
+            await Promise.all(modulePromises)
         }
         catch (error)
         {
             console.warn(`Error loading modules: ${error.message}`)
         }
+    }
+
+    toPascalCase(value)
+    {
+        return value
+            .split('-')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join('')
     }
 }

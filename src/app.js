@@ -27,15 +27,9 @@ export default class app extends EventEmitter
 
     async loadFonts()
     {
-        const font = new FontFaceObserver('ABC monument grotesk mono')
-        const fontTitle = new FontFaceObserver('Pragmatica Cond')
+        const font = new FontFaceObserver('Alliance No')
 
-        const fontPromises = [
-            font.load(null, 8000).catch(() => console.warn('ABC monument grotesk mono font failed to load')),
-            fontTitle.load(null, 8000).catch(() => console.warn('Pragmatica Cond font failed to load')),
-        ]
-
-        return Promise.all(fontPromises)
+        return font.load(null, 3000).catch(() => console.warn('Alliance No font failed to load'))
     }
 
     init()

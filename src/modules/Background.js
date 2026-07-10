@@ -1,0 +1,745 @@
+import {
+    Scene,
+    PerspectiveCamera,
+    WebGLRenderer,
+    ACESFilmicToneMapping,
+    WebGLRenderTarget,
+    DepthTexture,
+    DepthFormat,
+    UnsignedShortType,
+    HalfFloatType,
+    LinearFilter,
+    OrthographicCamera,
+    ShaderMaterial,
+    PlaneGeometry,
+    Mesh,
+    MeshStandardMaterial,
+    InstancedMesh,
+    InstancedBufferAttribute,
+    DynamicDrawUsage,
+    Raycaster,
+    Object3D,
+    Group,
+    Vector2,
+    Vector3,
+    Color,
+    FogExp2,
+    AmbientLight,
+    DirectionalLight,
+    RectAreaLight,
+} from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
+import CustomShaderMaterial from 'three-custom-shader-material/vanilla'
+import gsap from 'gsap'
+
+import { toNumber } from '@utils/Math.js'
+
+import vertexShader from '@gl/shards/vertex.glsl'
+import fragmentShader from '@gl/shards/fragment.glsl'
+
+/**
+ * WebGL animated "shards" background.
+ *
+ * Wire it up by adding `data-module="background"` to a Webflow div. The div
+ * acts as the container — the canvas is injected into it and sized to it, so
+ * give the div an explicit width/height (e.g. position it full-bleed behind
+ * your hero). Pointer events on the canvas are disabled so content above it
+ * stays clickable.
+ *
+ * Optional data attributes:
+ *   data-base-color      hex   blade base/emissive color (default #0E2D2A)
+ *   data-highlight-color hex   hover highlight color (default #275956)
+ *   data-gradient-start  0–1   horizontal UV where right-side darkening begins (default 0.35)
+ *   data-gradient-darken 0–1   brightness at the right edge, 1 = no change (default 0.55)
+ */
+export default class Background
+{
+    constructor(instance, app, main)
+    {
+        this.instance = instance
+        this.app = app
+        this.main = main
+
+        this.destroyed = false
+        this.renderer = null
+        this.inView = true
+        this.startTime = 0
+
+        this.onMouseMove = this.onMouseMove.bind(this)
+
+        this.init()
+        this.app.on('resize.background', () => this.resize())
+        this.app.on('destroy.background', () => this.destroy())
+    }
+
+    init()
+    {
+        // Disable the scene inside the Webflow Designer; run it on the published site.
+        if (document.documentElement.classList.contains('w-editor')) return
+
+        this.mouse = new Vector2()
+
+        const size = this.getSize()
+        this.width = size.width
+        this.height = size.height
+        this.pixelRatio = Math.min(window.devicePixelRatio, 2)
+
+        /** -- <canvas> */
+        this.canvas = document.createElement('canvas')
+        this.canvas.classList.add('webgl-background')
+        Object.assign(this.canvas.style, {
+            position: 'absolute',
+            inset: '0',
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            pointerEvents: 'none',
+        })
+        if (getComputedStyle(this.instance).position === 'static')
+        {
+            this.instance.style.position = 'relative'
+        }
+        this.instance.appendChild(this.canvas)
+
+        /** -- <renderer> */
+        this.renderer = new WebGLRenderer({
+            canvas: this.canvas,
+            antialias: true,
+            powerPreference: 'high-performance',
+        })
+        this.renderer.setSize(this.width, this.height)
+        this.renderer.setPixelRatio(this.pixelRatio)
+        this.renderer.toneMapping = ACESFilmicToneMapping
+        this.renderer.setClearColor(new Color('#84A2A1'), 1)
+
+        /** -- <camera> */
+        this.fovNum = 1200
+        this.fovFor = (h) => Math.atan(h / 2 / this.fovNum) * 2 * (180 / Math.PI)
+        this.camera = new PerspectiveCamera(this.fovFor(this.height), this.width / this.height, 1, 2000)
+        this.camera.position.z = this.fovNum
+
+        /** -- <scene> */
+        this.scene = new Scene()
+
+        const params = {
+            fogColor: '#84A2A1',
+            fogDensity: 0.00068,
+            ambientColor: '#3a6b7a',
+            ambientIntensity: 0.4,
+            directionalColor: '#3a6b7a',
+            directionalIntensity: 1.99,
+            directional2Color: '#3a6b7a',
+            directional2Intensity: 0.6,
+            rectColor: '#ffffff',
+            rectIntensity: 5,
+            rectWidth: 1360,
+            rectHeight: 995,
+        }
+
+        this.scene.fog = new FogExp2(new Color(params.fogColor), params.fogDensity)
+
+        this.ambient = new AmbientLight(new Color(params.ambientColor), params.ambientIntensity)
+        this.scene.add(this.ambient)
+
+        this.directional = new DirectionalLight(new Color(params.directionalColor), params.directionalIntensity)
+        this.directional.position.set(-430, 520, 1140)
+        this.directional.target.position.set(-60, -570, 910)
+        this.scene.add(this.directional, this.directional.target)
+
+        this.directional2 = new DirectionalLight(new Color(params.directional2Color), params.directional2Intensity)
+        this.directional2.position.set(-520, -180, -20)
+        this.directional2.target.position.set(-50, 30, 310)
+        this.scene.add(this.directional2, this.directional2.target)
+
+        RectAreaLightUniformsLib.init()
+        this.rectAreaLight = new RectAreaLight(
+            new Color(params.rectColor),
+            params.rectIntensity,
+            params.rectWidth,
+            params.rectHeight
+        )
+        this.rectAreaLight.position.set(100, 580, 750)
+        this.rectAreaLight.lookAt(new Vector3(0, -200, 520))
+        this.scene.add(this.rectAreaLight)
+
+        /** -- <shards> */
+        this.shards = this.createShards(this.scene, this.instance.dataset)
+
+        /** -- <post processing> */
+        this.post = this.createPost({
+            renderer: this.renderer,
+            scene: this.scene,
+            camera: this.camera,
+            width: this.width,
+            height: this.height,
+            pixelRatio: this.pixelRatio,
+            gradientStart: toNumber(this.instance.dataset.gradientStart, 0.35),
+            gradientDarken: toNumber(this.instance.dataset.gradientDarken, 0.55),
+        })
+
+        /** -- <mouse> */
+        window.addEventListener('mousemove', this.onMouseMove)
+
+        /** -- <visibility> pause rendering while the container is scrolled out of
+         * view (recommended in the interactivity skill — disable expensive Raf work
+         * when the element isn't visible). Nothing is on screen, so no visual change. */
+        this.visibilityObserver = new IntersectionObserver(
+            ([entry]) =>
+            {
+                this.inView = entry.isIntersecting
+            },
+            { threshold: 0 }
+        )
+        this.visibilityObserver.observe(this.instance)
+
+        /** -- <intro reveal> (replaces the original Loader.animateShards) */
+        this.introTween = this.playIntro(this.shards)
+
+        /** -- <loop> */
+        this.startTime = this.app.tick.elapsed
+        this.app.on('tick.background', () => this.onTick())
+    }
+
+    getSize()
+    {
+        const w = this.instance.clientWidth || window.innerWidth
+        const h = this.instance.clientHeight || window.innerHeight
+        return { width: w, height: h }
+    }
+
+    onMouseMove(e)
+    {
+        const rect = this.instance.getBoundingClientRect()
+        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        this.mouse.y = ((e.clientY - rect.top) / rect.height) * -2 + 1
+    }
+
+    onTick()
+    {
+        if (this.destroyed || !this.renderer) return
+        if (document.hidden || !this.inView) return
+
+        // Source derived time from performance.now(); app.tick.elapsed is the same
+        // real-time clock (ms). Subtracting startTime reproduces the source's
+        // "seconds since the loop started" value fed to uTime.
+        const elapsed = (this.app.tick.elapsed - this.startTime) * 0.001
+        this.shards.update(elapsed, this.mouse, this.camera)
+        this.post.render()
+    }
+
+    resize()
+    {
+        if (this.destroyed || !this.renderer) return
+
+        const size = this.getSize()
+        this.width = size.width
+        this.height = size.height
+
+        this.camera.fov = this.fovFor(this.height)
+        this.camera.aspect = this.width / this.height
+        this.camera.updateProjectionMatrix()
+
+        this.renderer.setSize(this.width, this.height)
+        this.post.resize(this.width, this.height)
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Shards — the instanced ring of swaying blades                          */
+    /* ---------------------------------------------------------------------- */
+
+    createShards(scene, dataset)
+    {
+        const params = {
+            count: 256,
+            radiusX: 1850,
+            radiusZ: 1500,
+            centerX: -510,
+            centerY: 140,
+            centerZ: -640,
+            ringRotationX: -158,
+            ringRotationY: -118,
+            ringRotationZ: 6,
+            wavePower: 114,
+            waveFrequency: 4.3,
+            bladeWidth: 900,
+            bladeHeight: 450,
+            bladeDepth: 2,
+            bladeRadius: 1,
+            bladeSegments: 2,
+            rotationX: 0,
+            rotationY: 90,
+            rotationZ: -27,
+            baseColor: dataset.baseColor || '#0E2D2A',
+            emissiveColor: dataset.baseColor || '#0E2D2A',
+            emissiveIntensity: 1.5,
+            metalness: 0.3,
+            roughness: 0.4,
+            swayPower: 20,
+            swaySpeed: 1.2,
+            parallaxX: 30,
+            parallaxY: 20,
+            highlightColor: dataset.highlightColor || '#275956',
+            highlightPower: 0.2,
+            highlightLerp: 0.18,
+            introYOffset: 220,
+        }
+
+        const material = new CustomShaderMaterial({
+            baseMaterial: MeshStandardMaterial,
+            vertexShader,
+            fragmentShader,
+            uniforms: {
+                uTime: { value: 0 },
+                uSwayPower: { value: params.swayPower },
+                uSwaySpeed: { value: params.swaySpeed },
+                uBladeHeight: { value: params.bladeHeight },
+                uHighlightColor: { value: new Color(params.highlightColor) },
+                uHighlightPower: { value: params.highlightPower },
+                uIntroYOffset: { value: params.introYOffset },
+            },
+            color: new Color(params.baseColor),
+            emissive: new Color(params.emissiveColor),
+            emissiveIntensity: params.emissiveIntensity,
+            metalness: params.metalness,
+            roughness: params.roughness,
+            fog: true,
+            transparent: true,
+            alphaTest: 0.01,
+            depthWrite: true,
+        })
+
+        const geometry = new RoundedBoxGeometry(
+            params.bladeWidth,
+            params.bladeHeight,
+            params.bladeDepth,
+            params.bladeSegments,
+            params.bladeRadius
+        )
+        geometry.translate(0, params.bladeHeight / 2, 0)
+
+        const phases = new Float32Array(params.count)
+        for (let i = 0; i < params.count; i++) phases[i] = Math.random()
+        geometry.setAttribute('aPhase', new InstancedBufferAttribute(phases, 1))
+
+        const hoverAmounts = new Float32Array(params.count)
+        const hoverAttr = new InstancedBufferAttribute(hoverAmounts, 1)
+        hoverAttr.setUsage(DynamicDrawUsage)
+        geometry.setAttribute('aHoverAmount', hoverAttr)
+
+        const introAmounts = new Float32Array(params.count)
+        const introAttr = new InstancedBufferAttribute(introAmounts, 1)
+        introAttr.setUsage(DynamicDrawUsage)
+        geometry.setAttribute('aIntroAmount', introAttr)
+
+        const group = new Group()
+        scene.add(group)
+
+        const mesh = new InstancedMesh(geometry, material, params.count)
+        mesh.frustumCulled = false
+        group.add(mesh)
+
+        const DEG = Math.PI / 180
+        group.position.set(params.centerX, params.centerY, params.centerZ)
+        group.rotation.set(params.ringRotationX * DEG, params.ringRotationY * DEG, params.ringRotationZ * DEG)
+
+        const dummy = new Object3D()
+        const tau = Math.PI * 2
+        const rotX = params.rotationX * DEG
+        const rotY = params.rotationY * DEG
+        const rotZ = params.rotationZ * DEG
+        for (let i = 0; i < params.count; i++)
+        {
+            const angle = (i / params.count) * tau
+            const waveY = Math.sin(angle * params.waveFrequency) * params.wavePower
+            dummy.position.set(Math.cos(angle) * params.radiusX, waveY, Math.sin(angle) * params.radiusZ)
+            dummy.rotation.set(rotX, -angle + Math.PI / 2 + rotY, rotZ)
+            dummy.updateMatrix()
+            mesh.setMatrixAt(i, dummy.matrix)
+        }
+        mesh.instanceMatrix.needsUpdate = true
+
+        const mouseParallax = new Vector2(0, 0)
+        const raycaster = new Raycaster()
+        const prevMouse = new Vector2(NaN, NaN)
+        let hoveredId = -1
+
+        const update = (elapsed, mouse, camera) =>
+        {
+            material.uniforms.uTime.value = elapsed
+
+            const targetX = mouse.x * params.parallaxX
+            const targetY = mouse.y * params.parallaxY
+            const parallaxMoving =
+                Math.abs(targetX - mouseParallax.x) > 0.01 || Math.abs(targetY - mouseParallax.y) > 0.01
+            mouseParallax.x += (targetX - mouseParallax.x) * 0.05
+            mouseParallax.y += (targetY - mouseParallax.y) * 0.05
+            mesh.position.x = mouseParallax.x
+            mesh.position.y = mouseParallax.y
+
+            // Raycast only when the pointer moved or the parallax is still settling.
+            // When everything is idle the hovered blade can't change, so the costly
+            // 256-instance raycast is skipped — the hover fade below still runs every
+            // frame, so the visual result is identical.
+            const pointerMoved = mouse.x !== prevMouse.x || mouse.y !== prevMouse.y
+            prevMouse.copy(mouse)
+            if (pointerMoved || parallaxMoving)
+            {
+                mesh.updateWorldMatrix(true, false)
+                raycaster.setFromCamera(mouse, camera)
+                const hits = raycaster.intersectObject(mesh, false)
+                hoveredId = hits.length > 0 ? (hits[0].instanceId ?? -1) : -1
+            }
+
+            const lerp = params.highlightLerp
+            let dirty = false
+            for (let i = 0; i < hoverAmounts.length; i++)
+            {
+                const target = i === hoveredId ? 1 : 0
+                const current = hoverAmounts[i]
+                const next = current + (target - current) * lerp
+                if (Math.abs(next - current) > 0.0005)
+                {
+                    hoverAmounts[i] = next
+                    dirty = true
+                }
+                else if (current !== target)
+                {
+                    hoverAmounts[i] = target
+                    dirty = true
+                }
+            }
+            if (dirty) hoverAttr.needsUpdate = true
+        }
+
+        const destroy = () =>
+        {
+            group.remove(mesh)
+            scene.remove(group)
+            geometry.dispose()
+            material.dispose()
+            mesh.dispose()
+        }
+
+        return { params, introAmounts, introAttr, update, destroy }
+    }
+
+    playIntro(shards, { duration = 1.2, stagger = 2, ease = 'power3.out' } = {})
+    {
+        const { count } = shards.params
+        const amounts = shards.introAmounts
+        const attr = shards.introAttr
+
+        for (let i = 0; i < count; i++) amounts[i] = 0
+        attr.needsUpdate = true
+
+        const targets = Array.from({ length: count }, () => ({ v: 0 }))
+
+        return gsap.to(targets, {
+            v: 1,
+            duration,
+            ease,
+            stagger: stagger / Math.max(1, count - 1),
+            onUpdate: () =>
+            {
+                for (let i = 0; i < count; i++) amounts[i] = targets[i].v
+                attr.needsUpdate = true
+            },
+        })
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Post-processing — half-res Gaussian blur + depth-of-field composite    */
+    /* ---------------------------------------------------------------------- */
+
+    createPost(opts)
+    {
+        const { renderer, scene, camera } = opts
+
+        const physical = (w, h) => ({
+            w: Math.max(1, Math.floor(w * opts.pixelRatio)),
+            h: Math.max(1, Math.floor(h * opts.pixelRatio)),
+        })
+
+        let { w, h } = physical(opts.width, opts.height)
+
+        const renderTarget = new WebGLRenderTarget(w, h, {
+            samples: 2,
+            type: HalfFloatType,
+        })
+        renderTarget.stencilBuffer = false
+        renderTarget.depthTexture = new DepthTexture(w, h)
+        renderTarget.depthTexture.format = DepthFormat
+        renderTarget.depthTexture.type = UnsignedShortType
+
+        let bw = Math.max(1, Math.floor(w / 2))
+        let bh = Math.max(1, Math.floor(h / 2))
+
+        const blurTargetH = new WebGLRenderTarget(bw, bh, {
+            minFilter: LinearFilter,
+            magFilter: LinearFilter,
+            depthBuffer: false,
+            stencilBuffer: false,
+            generateMipmaps: false,
+            type: HalfFloatType,
+        })
+        const blurTargetV = new WebGLRenderTarget(bw, bh, {
+            minFilter: LinearFilter,
+            magFilter: LinearFilter,
+            depthBuffer: false,
+            stencilBuffer: false,
+            generateMipmaps: false,
+            type: HalfFloatType,
+        })
+
+        const blurVertex = /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `
+        const blurFragment = /* glsl */ `
+      #include <packing>
+      varying vec2 vUv;
+      uniform sampler2D tDiffuse;
+      uniform sampler2D tDepth;
+      uniform vec2 uTexelSize;
+      uniform vec2 uDirection;
+      uniform float uBlurStrength;
+      uniform float cameraNear;
+      uniform float cameraFar;
+      uniform float uDepthBias;
+
+      float readDepth(vec2 coord) {
+        float fragCoordZ = texture2D(tDepth, coord).x;
+        float viewZ = perspectiveDepthToViewZ(fragCoordZ, cameraNear, cameraFar);
+        return viewZToOrthographicDepth(viewZ, cameraNear, cameraFar);
+      }
+
+      // Depth-aware sample: samples that are much NEARER than the pixel being
+      // blurred are foreground (the sharp blades). Fading their weight out stops
+      // them from bleeding into the blurred background, which removes the halo
+      // "bars" that hug each blade. Samples at equal-or-greater depth are kept.
+      void addSample(vec2 uv, float w, float centerDepth, inout vec4 c, inout float total) {
+        float sd = readDepth(uv);
+        float weight = w * smoothstep(centerDepth - uDepthBias, centerDepth, sd);
+        c += texture2D(tDiffuse, uv) * weight;
+        total += weight;
+      }
+
+      void main() {
+        float w0 = 0.227027;
+        float w1 = 0.1945946;
+        float w2 = 0.1216216;
+        float w3 = 0.054054;
+        float w4 = 0.016216;
+        vec2 stepSize = uTexelSize * uDirection * uBlurStrength;
+        float centerDepth = readDepth(vUv);
+
+        vec4 c = texture2D(tDiffuse, vUv) * w0;
+        float total = w0;
+        addSample(vUv + stepSize * 1.0, w1, centerDepth, c, total);
+        addSample(vUv - stepSize * 1.0, w1, centerDepth, c, total);
+        addSample(vUv + stepSize * 2.0, w2, centerDepth, c, total);
+        addSample(vUv - stepSize * 2.0, w2, centerDepth, c, total);
+        addSample(vUv + stepSize * 3.0, w3, centerDepth, c, total);
+        addSample(vUv - stepSize * 3.0, w3, centerDepth, c, total);
+        addSample(vUv + stepSize * 4.0, w4, centerDepth, c, total);
+        addSample(vUv - stepSize * 4.0, w4, centerDepth, c, total);
+
+        gl_FragColor = c / total;
+      }
+    `
+
+        const blurScene = new Scene()
+        const blurMaterialH = new ShaderMaterial({
+            toneMapped: false,
+            uniforms: {
+                tDiffuse: { value: null },
+                tDepth: { value: renderTarget.depthTexture },
+                uTexelSize: { value: new Vector2(1 / bw, 1 / bh) },
+                uDirection: { value: new Vector2(1, 0) },
+                uBlurStrength: { value: 4 },
+                cameraNear: { value: camera.near },
+                cameraFar: { value: camera.far },
+                uDepthBias: { value: 0.03 },
+            },
+            vertexShader: blurVertex,
+            fragmentShader: blurFragment,
+        })
+        const blurMaterialV = new ShaderMaterial({
+            toneMapped: false,
+            uniforms: {
+                tDiffuse: { value: null },
+                tDepth: { value: renderTarget.depthTexture },
+                uTexelSize: { value: new Vector2(1 / bw, 1 / bh) },
+                uDirection: { value: new Vector2(0, 1) },
+                uBlurStrength: { value: 4 },
+                cameraNear: { value: camera.near },
+                cameraFar: { value: camera.far },
+                uDepthBias: { value: 0.03 },
+            },
+            vertexShader: blurVertex,
+            fragmentShader: blurFragment,
+        })
+        const blurMesh = new Mesh(new PlaneGeometry(2, 2), blurMaterialH)
+        blurScene.add(blurMesh)
+
+        const outputScene = new Scene()
+        const outputCamera = new OrthographicCamera(-1, 1, 1, -1, 0, 1)
+        const outputMaterial = new ShaderMaterial({
+            toneMapped: true,
+            uniforms: {
+                tScene: { value: renderTarget.texture },
+                tDepth: { value: renderTarget.depthTexture },
+                tBlur: { value: blurTargetV.texture },
+                cameraNear: { value: camera.near },
+                cameraFar: { value: camera.far },
+                uDebugDepth: { value: 0.0 },
+                uInvert: { value: 0.0 },
+                uFocusDistance: { value: 0.0 },
+                uFocusRange: { value: 0.0 },
+                uFocusFalloff: { value: 0.4 },
+                uGradientStart: { value: opts.gradientStart },
+                uGradientDarken: { value: opts.gradientDarken },
+            },
+            vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position.xy, 0.0, 1.0);
+        }
+      `,
+            fragmentShader: /* glsl */ `
+        #include <packing>
+        varying vec2 vUv;
+        uniform sampler2D tScene;
+        uniform sampler2D tDepth;
+        uniform sampler2D tBlur;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        uniform float uDebugDepth;
+        uniform float uInvert;
+        uniform float uFocusDistance;
+        uniform float uFocusRange;
+        uniform float uFocusFalloff;
+        uniform float uGradientStart;
+        uniform float uGradientDarken;
+
+        float readDepth(sampler2D depthSampler, vec2 coord) {
+          float fragCoordZ = texture2D(depthSampler, coord).x;
+          float viewZ = perspectiveDepthToViewZ(fragCoordZ, cameraNear, cameraFar);
+          return viewZToOrthographicDepth(viewZ, cameraNear, cameraFar);
+        }
+
+        // Screen-space triangular-PDF dither. Breaks up the 8-bit banding that
+        // smooth gradients (fog, blur, the right-side darkening) quantize into
+        // visible stripes/bars. Amplitude is ~1 LSB so it stays invisible.
+        float dither(vec2 coord) {
+          float r = fract(sin(dot(coord, vec2(12.9898, 78.233))) * 43758.5453);
+          float g = fract(sin(dot(coord + 1.0, vec2(12.9898, 78.233))) * 43758.5453);
+          return (r + g - 1.0) / 255.0;
+        }
+
+        void main() {
+          if (uDebugDepth > 0.5) {
+            float d = readDepth(tDepth, vUv);
+            float v = mix(1.0 - d, d, uInvert);
+            gl_FragColor = vec4(vec3(v), 1.0);
+            return;
+          }
+          float d = readDepth(tDepth, vUv);
+          float dist = abs(d - uFocusDistance);
+          float blurMix = smoothstep(uFocusRange, uFocusRange + uFocusFalloff, dist);
+          vec4 sceneCol = texture2D(tScene, vUv);
+          vec4 blurCol = texture2D(tBlur, vUv);
+          gl_FragColor = mix(sceneCol, blurCol, blurMix);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          float gradient = smoothstep(uGradientStart, 1.0, vUv.x);
+          gl_FragColor.rgb *= mix(1.0, uGradientDarken, gradient);
+          gl_FragColor.rgb += dither(gl_FragCoord.xy);
+        }
+      `,
+        })
+        const outputMesh = new Mesh(new PlaneGeometry(2, 2), outputMaterial)
+        outputScene.add(outputMesh)
+
+        const render = () =>
+        {
+            renderer.setRenderTarget(renderTarget)
+            renderer.render(scene, camera)
+
+            blurMesh.material = blurMaterialH
+            blurMaterialH.uniforms.tDiffuse.value = renderTarget.texture
+            renderer.setRenderTarget(blurTargetH)
+            renderer.render(blurScene, outputCamera)
+
+            blurMesh.material = blurMaterialV
+            blurMaterialV.uniforms.tDiffuse.value = blurTargetH.texture
+            renderer.setRenderTarget(blurTargetV)
+            renderer.render(blurScene, outputCamera)
+
+            renderer.setRenderTarget(null)
+            renderer.render(outputScene, outputCamera)
+        }
+
+        const resize = (width, height) =>
+        {
+            const p = physical(width, height)
+            w = p.w
+            h = p.h
+            bw = Math.max(1, Math.floor(w / 2))
+            bh = Math.max(1, Math.floor(h / 2))
+
+            renderTarget.setSize(w, h)
+            blurTargetH.setSize(bw, bh)
+            blurTargetV.setSize(bw, bh)
+
+            blurMaterialH.uniforms.uTexelSize.value.set(1 / bw, 1 / bh)
+            blurMaterialV.uniforms.uTexelSize.value.set(1 / bw, 1 / bh)
+        }
+
+        const destroy = () =>
+        {
+            outputMesh.geometry.dispose()
+            outputMaterial.dispose()
+            blurMesh.geometry.dispose()
+            blurMaterialH.dispose()
+            blurMaterialV.dispose()
+            blurTargetH.dispose()
+            blurTargetV.dispose()
+            renderTarget.dispose()
+        }
+
+        return { render, resize, destroy }
+    }
+
+    destroy()
+    {
+        if (this.destroyed) return
+        this.destroyed = true
+
+        this.app.off('tick.background')
+        this.app.off('resize.background')
+
+        if (!this.renderer) return
+
+        this.introTween?.kill()
+        this.visibilityObserver.disconnect()
+        window.removeEventListener('mousemove', this.onMouseMove)
+
+        this.shards.destroy()
+        this.post.destroy()
+
+        this.ambient.dispose?.()
+        this.directional.dispose?.()
+        this.directional2.dispose?.()
+        this.rectAreaLight.dispose?.()
+        this.scene.fog = null
+
+        this.renderer.dispose()
+        if (this.canvas.parentNode) this.canvas.parentNode.removeChild(this.canvas)
+    }
+}

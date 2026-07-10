@@ -6,4 +6,12 @@ html.w-editor {
     .loader {
         display: none;
     }
+
+    // Modules bail out in the editor, so their anti-FOUC ready classes are
+    // never added — force the content visible here instead
+    [data-module='text-reveal']:not(.tr-ready),
+    [data-module='content-reveal']:not(.cr-ready) {
+        visibility: visible;
+        animation: none;
+    }
 }

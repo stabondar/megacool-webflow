@@ -5,6 +5,7 @@ example
 dist-ssr
 *.local
 .env
+dist/
 .eslintcache
 yarn-error.log
 yarn.lock

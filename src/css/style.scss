@@ -5,6 +5,11 @@
 
 // Modules
 @use './modules/accordion.scss' as *;
+@use './modules/text-hover.scss' as *;
+@use './modules/text-reveal.scss' as *;
+@use './modules/content-reveal.scss' as *;
+@use './modules/numbers-unmask.scss' as *;
+@use './modules/tick-meter.scss' as *;
 
 @use './editor.scss' as *;
 
