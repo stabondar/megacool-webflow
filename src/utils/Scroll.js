@@ -14,13 +14,10 @@ export default class Scroll
 
         ScrollTrigger.addEventListener('refresh', () => this.lenis.resize())
 
-        this.lenis.on('scroll', ScrollTrigger.update)
-
-        Tempus.add(({time}) => this.lenis.raf(time))
+        Tempus.add(({ time }) => this.lenis.raf(time))
 
         gsap.ticker.remove(gsap.updateRoot)
-        Tempus.add(({time}) => gsap.updateRoot(time / 1000))
-
+        Tempus.add(({ time }) => gsap.updateRoot(time / 1000))
 
         this.watchContentHeight()
     }
@@ -75,6 +72,10 @@ export default class Scroll
             syncTouchLerp: 0.08,
             wheelMultiplier: 1.6,
         })
+
+        // wired here (not in the constructor) so every re-created Lenis
+        // after a page transition drives ScrollTrigger again
+        this.lenis.on('scroll', ScrollTrigger.update)
     }
 
     destroy()

@@ -26,6 +26,10 @@ export default class Enter
         document.documentElement.style.scrollBehavior = 'instant'
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
 
+        // Lenis must exist BEFORE modules load — they subscribe to app.scroll.lenis
+        // in init(), and the delayed init() left them bound to the destroyed instance
+        this.app.scroll.init()
+
         requestAnimationFrame(() =>
         {
             window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
@@ -34,11 +38,6 @@ export default class Enter
             {
                 window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
                 document.documentElement.style.scrollBehavior = ''
-
-                setTimeout(() =>
-                {
-                    this.app.scroll.init()
-                }, 100)
             })
         })
 
