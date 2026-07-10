@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite App</title>
+
+<style>
+    main, nav {visibility: hidden}
+</style>
+
+<script defer>
+    let prodLink = 'https://new-home.ciridae.pages.dev/'
+    let ngrokEnv = 'https://stabondar.ngrok.app/'
+    let localEnv = 'http://localhost:4321/'
+    let allowNgrok = false
+    let isWebflow=window.location.href.includes('webflow.io');function loadScript(e){return new Promise((r,l)=>{let t=document.createElement("script");t.src=e,t.type="module",t.onload=r,t.onerror=l,document.head.appendChild(t)})}function loadStyles(e){return new Promise((r,l)=>{let t=document.createElement("link");t.rel="stylesheet",t.href=e,t.onload=r,t.onerror=l,document.head.appendChild(t)})}function loadProdResources(){Promise.all([loadStyles(`${prodLink}index.css`),loadScript(`${prodLink}app.js`)]).catch(e=>{console.error("Failed to load production resources:",e)})}isWebflow?(allowNgrok?fetch(`${ngrokEnv}src/main.js`).then(e=>{if(e.ok)return console.log("Loading from ngrok"),loadScript(e.url)}).catch(e=>{console.log("Ngrok not available, loading production"),loadProdResources()}):fetch(`${localEnv}src/main.js`).then(e=>{if(e.ok)return console.log("Loading from localhost"),loadScript(e.url)}).catch(e=>{console.log("Localhost not available, loading production"),loadProdResources()})):loadProdResources();
+</script>
+</head>
+
+<body>
+  <script type="module" src="/src/main.js"></script>
+  <canvas class="webgl"></canvas>
+
+</body>
+
+</html>

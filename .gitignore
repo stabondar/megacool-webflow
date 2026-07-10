@@ -1,0 +1,11 @@
+node_modules
+package-lock.json
+example
+.DS_Store
+dist-ssr
+*.local
+.env
+.eslintcache
+yarn-error.log
+yarn.lock
+.vercel
