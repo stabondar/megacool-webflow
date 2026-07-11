@@ -11,6 +11,9 @@
 @use './modules/numbers-unmask.scss' as *;
 @use './modules/tick-meter.scss' as *;
 
+@use './pages/about' as *;
+@use './pages/technology.scss' as *;
+
 @use './editor.scss' as *;
 
 a:is(.w-webflow-badge) {

@@ -1,4 +1,4 @@
-.accordion
+/* .accordion
 {
     &.active
     {
@@ -25,5 +25,36 @@
 .accordion_icon
 {
     transition: transform var(--ease), color var(--ease);
-}
-  
+} */
+
+accordion {
+    position: relative;
+    clip-path: shape(from 0 8px, arc to 8px 0 of 8px cw, line to calc(100% - 8px) 0, arc to 100% 8px of 8px cw, line to 100% calc(100% - 22px), line to calc(100% - 27px) 100%, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close);
+  }
+  .accordion::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(160deg, rgba(255,255,255,.5), rgba(255,255,255,.2) 46%, rgba(255,255,255,.5));
+    clip-path: shape(evenodd from 0 8px, arc to 8px 0 of 8px cw, line to calc(100% - 8px) 0, arc to 100% 8px of 8px cw, line to 100% calc(100% - 22px), line to calc(100% - 27px) 100%, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close, move to 1px 8px, arc to 8px 1px of 7px cw, line to calc(100% - 8px) 1px, arc to calc(100% - 1px) 8px of 7px cw, line to calc(100% - 1px) calc(100% - 22px), line to calc(100% - 27px) calc(100% - 1px), line to 8px calc(100% - 1px), arc to 1px calc(100% - 8px) of 7px cw, close);
+  }
+  .accordion-head, .accordion-body { position: relative; z-index: 1; }
+
+  /* Open/close — JS adds .is-open */
+  .accordion-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .6s cubic-bezier(.38,.005,.215,1); }
+  .accordion.is-open .accordion-body { grid-template-rows: 1fr; }
+  .accordion-inner { overflow: hidden; min-height: 0; opacity: 0; transition: opacity .3s; }
+  .accordion.is-open .accordion-inner { opacity: 1; }
+  .accordion-head { padding-bottom: 0; transition: padding-bottom .55s cubic-bezier(.38,.005,.215,1); }
+  .accordion.is-open .accordion-head { padding-bottom: var(--_spacing---space-xs); }
+
+  /* Tablet/mobile/short viewport */
+  @media (max-width: 991px), (max-height: 700px) {
+    .partner-track, .partner-sticky { height: auto; }
+    .partner-sticky { position: relative; top: auto; }
+    .accordion-body { grid-template-rows: 1fr; transition: none; }
+    .accordion-inner { opacity: 1; }
+    .accordion-head { padding-bottom: var(--_spacing---space-xs); }
+  }
