@@ -161,6 +161,16 @@ const createReveal = (element, config, reduced) =>
         lastWidth = width
         lastFontSize = fontSize
 
+        // A reveal tween mid-flight would keep animating the discarded line
+        // nodes — kill it and settle state as if it had completed.
+        gsap.killTweensOf(split.lines)
+        if (playing)
+        {
+            playing = false
+            isRevealed = true
+            if (config.once) hasPlayed = true
+        }
+
         // revert() momentarily restores raw text — hide so it can't flash on screen.
         animatedText.style.visibility = 'hidden'
         split.revert()

@@ -105,6 +105,8 @@ export default class Marquee
     resize()
     {
         if (this.destroyed) return
+        // movement is %-based (quickSetter 'x' in '%') and the Draggable has
+        // no bounds — nothing measured at init goes stale on resize
     }
 
     destroy()
@@ -112,5 +114,9 @@ export default class Marquee
         if (this.destroyed) return
 
         this.destroyed = true
+
+        this.enterTl?.kill()
+        this.draggable?.[0]?.kill()
+        this.observer.unobserve(this.instance)
     }
 }

@@ -1,7 +1,7 @@
 import gsap from 'gsap'
 import SplitText from 'gsap/SplitText'
 
-import { toNumber } from '@utils/Math'
+import { shuffle, toNumber } from '@utils/Math'
 
 gsap.registerPlugin(SplitText)
 
@@ -10,11 +10,13 @@ const SPLIT_CLASS = 'th-is-split'
 
 /**
  * data-module="text-hover" on any text element.
- * Optional data-attributes: data-shift, data-stagger, data-duration.
+ * Optional data-attributes: data-duration (per-char fade), data-fade (scatter window).
  *
- * Splits into chars, staggers per-char transitionDelay, and lets the CSS
- * (text-hover.scss) run the shadow-duplicate slide on :hover. Only splits when
- * motion is allowed and the device has a real hover pointer.
+ * Splits into chars and, on hover, re-reveals them in random order — the same
+ * scattered fade the tick-meter labels use (TickMeter.revealText). Hover is
+ * bound to the closest [data-cta] wrapper so the whole button triggers it,
+ * not just the text. Only active when motion is allowed and the device has a
+ * real hover pointer.
  */
 export default class TextHover
 {
@@ -40,12 +42,13 @@ export default class TextHover
         const dataset = this.instance.dataset
 
         this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        this.shift = toNumber(dataset.shift, 1.3)
-        this.stagger = toNumber(dataset.stagger, 0.01)
-        this.duration = toNumber(dataset.duration, 0.3)
+        this.duration = toNumber(dataset.duration, 0.12)
+        this.fade = toNumber(dataset.fade, 0.7)
 
-        this.instance.style.setProperty('--text-hover-shift', `${this.shift}em`)
-        this.instance.style.setProperty('--text-hover-duration', `${this.duration}s`)
+        this.trigger = this.instance.closest('[data-cta]') ?? this.instance
+
+        this.onEnter = () => this.reveal()
+        this.onLeave = () => this.settle()
 
         this.apply()
     }
@@ -64,19 +67,56 @@ export default class TextHover
             charsClass: CHAR_CLASS,
         })
 
-        this.split.chars.forEach((char, i) =>
-        {
-            char.style.transitionDelay = `${i * this.stagger}s`
-        })
-
         this.instance.classList.add(SPLIT_CLASS)
+
+        this.trigger.addEventListener('mouseenter', this.onEnter)
+        this.trigger.addEventListener('mouseleave', this.onLeave)
     }
 
     teardown()
     {
-        if (this.split) this.split.revert()
+        if (this.trigger)
+        {
+            this.trigger.removeEventListener('mouseenter', this.onEnter)
+            this.trigger.removeEventListener('mouseleave', this.onLeave)
+        }
+
+        if (this.split)
+        {
+            gsap.killTweensOf(this.split.chars)
+            this.split.revert()
+        }
         this.split = null
         this.instance.classList.remove(SPLIT_CLASS)
+    }
+
+    reveal()
+    {
+        if (this.destroyed || !this.split) return
+
+        const chars = this.split.chars
+        gsap.killTweensOf(chars)
+        gsap.set(chars, { opacity: 0 })
+
+        shuffle(chars).forEach((char) =>
+        {
+            gsap.to(char, {
+                opacity: 1,
+                duration: this.duration,
+                delay: Math.random() * this.fade,
+                ease: 'power2.out',
+            })
+        })
+    }
+
+    // Leaving mid-reveal must not strand half-hidden chars — fade them all back.
+    settle()
+    {
+        if (this.destroyed || !this.split) return
+
+        const chars = this.split.chars
+        gsap.killTweensOf(chars)
+        gsap.to(chars, { opacity: 1, duration: this.duration, ease: 'power2.out' })
     }
 
     apply()

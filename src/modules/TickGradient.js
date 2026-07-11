@@ -96,6 +96,11 @@ export default class TickGradient
         if (!this.tickSelector) return
 
         this.paintGradient()
+
+        // the pulse tween targets the tick set captured at creation — rebuild
+        // it against the ticks visible at the new size
+        this.stopPulse()
+        this.startPulse()
     }
 
     destroy()

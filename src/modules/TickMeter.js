@@ -1,23 +1,12 @@
 import gsap from 'gsap'
 
-import { toNumber } from '@utils/Math.js'
+import { shuffle, toNumber } from '@utils/Math.js'
 
 const TICK_CLASS = 'smh__tick'
 const CHAR_CLASS = 'tm-char'
 const TEXT_SELECTOR = '.eyebrow'
 const ACTIVE_CLASS = 'is-active'
 const READY_CLASS = 'is-ready'
-
-const shuffle = (items) =>
-{
-    const copy = [...items]
-    for (let i = copy.length - 1; i > 0; i--)
-    {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[copy[i], copy[j]] = [copy[j], copy[i]]
-    }
-    return copy
-}
 
 export default class TickMeter
 {

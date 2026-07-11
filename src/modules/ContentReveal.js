@@ -15,6 +15,10 @@ const ANIM_DURATION = 0.8
 const ANIM_EASE = 'punch'
 const DEFAULT_STAGGER_MS = 60
 
+// Groups that already revealed, keyed by DOM node — a resize rebuild must not
+// re-hide and replay them.
+const playedGroups = new WeakSet()
+
 /**
  * Convert a ScrollTrigger-style start ("top 80%", "top bottom", "top center")
  * into the viewport ratio (0-1) at which the reveal should begin, so we can
@@ -140,6 +144,12 @@ const revealGroup = (groupEl, dataset, reduced) =>
         return
     }
 
+    if (playedGroups.has(groupEl))
+    {
+        resetVisible(groupEl)
+        return
+    }
+
     const playOnLoadOrScroll = (play) =>
     {
         if (isAtOrPastStart(groupEl, startRatio))
@@ -168,6 +178,7 @@ const revealGroup = (groupEl, dataset, reduced) =>
         {
             if (played) return
             played = true
+            playedGroups.add(groupEl)
             gsap.to(groupEl, {
                 y: 0,
                 autoAlpha: 1,
@@ -190,6 +201,7 @@ const revealGroup = (groupEl, dataset, reduced) =>
     {
         if (played) return
         played = true
+        playedGroups.add(groupEl)
 
         const tl = gsap.timeline()
 
@@ -321,9 +333,18 @@ export default class ContentReveal
         requestAnimationFrame(() => ScrollTrigger.refresh())
     }
 
+    // Trigger positions and hidden offsets were captured at the old layout —
+    // kill the whole context and rebuild it. playedGroups keeps groups that
+    // already revealed visible instead of re-hiding and replaying them.
     resize()
     {
         if (this.destroyed) return
+        if (!this.active || this.reduced) return
+
+        this.active = false
+        this.ctx.revert()
+        this.ctx = null
+        this.start()
     }
 
     destroy()

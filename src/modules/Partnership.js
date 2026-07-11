@@ -149,6 +149,7 @@ export default class Partnership
         if (!this.started) return
 
         this.desktopMq.removeEventListener('change', this.applyMode)
+        this.app.scroll.lenis.off('scroll', this.onScroll)
 
         if (this.hasTargets) gsap.set(this.targetEls, { clearProps: 'transform' })
     }
