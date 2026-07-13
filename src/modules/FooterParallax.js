@@ -53,7 +53,8 @@ export default class FooterParallax
         this.started = true
 
         this.render()
-        this.app.scroll.lenis.on('scroll', this.onScroll)
+        this.subscribedLenis = this.app.scroll.lenis
+        this.subscribedLenis.on('scroll', this.onScroll)
     }
 
     render()
@@ -88,7 +89,9 @@ export default class FooterParallax
 
         if (!this.started) return
 
-        this.app.scroll.lenis.off('scroll', this.onScroll)
+        // off() the instance we subscribed to — by deferred-destroy time,
+        // app.scroll.lenis is already the NEXT page's Lenis
+        this.subscribedLenis?.off('scroll', this.onScroll)
 
         if (this.inner) gsap.set(this.inner, { clearProps: 'transform' })
         if (this.dark) gsap.set(this.dark, { clearProps: 'opacity' })

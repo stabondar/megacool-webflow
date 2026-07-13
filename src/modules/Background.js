@@ -53,6 +53,8 @@ import fragmentShader from '@gl/shards/fragment.glsl'
  *   data-gradient-start  0–1   horizontal UV where right-side darkening begins (default 0.35)
  *   data-gradient-darken 0–1   brightness at the right edge, 1 = no change (default 0.55)
  */
+let instanceCount = 0
+
 export default class Background
 {
     constructor(instance, app, main)
@@ -68,9 +70,14 @@ export default class Background
 
         this.onMouseMove = this.onMouseMove.bind(this)
 
+        // Per-instance namespace: destroy is deferred until the next page is
+        // built, so a shared namespace would make this off() wipe the next
+        // Background's listeners too.
+        this.ns = `background${++instanceCount}`
+
         this.init()
-        this.app.on('resize.background', () => this.resize())
-        this.app.on('destroy.background', () => this.destroy())
+        this.app.on(`resize.${this.ns}`, () => this.resize())
+        this.app.on(`destroy.${this.ns}`, () => this.destroy())
     }
 
     init()
@@ -198,7 +205,7 @@ export default class Background
 
         /** -- <loop> */
         this.startTime = this.app.tick.elapsed
-        this.app.on('tick.background', () => this.onTick())
+        this.app.on(`tick.${this.ns}`, () => this.onTick())
     }
 
     getSize()
@@ -721,8 +728,8 @@ export default class Background
         if (this.destroyed) return
         this.destroyed = true
 
-        this.app.off('tick.background')
-        this.app.off('resize.background')
+        this.app.off(`tick.${this.ns}`)
+        this.app.off(`resize.${this.ns}`)
 
         if (!this.renderer) return
 

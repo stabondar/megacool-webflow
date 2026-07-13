@@ -26,8 +26,13 @@ export default class Navigation
             this.instance.setAttribute(STATUS_ATTR, NOT_ACTIVE)
         }
 
-        this.toggleButtons = Array.from(document.querySelectorAll('[data-navigation-toggle="toggle"]'))
-        this.closeButtons = Array.from(document.querySelectorAll('[data-navigation-toggle="close"]'))
+        // Scope to this page's container — in sync transitions both the old
+        // and new page are in the DOM, so a document-wide query would also
+        // grab the outgoing page's buttons. Fall back to document for markup
+        // where the toggles live outside the container.
+        const scope = this.main && this.main.querySelector('[data-navigation-toggle]') ? this.main : document
+        this.toggleButtons = Array.from(scope.querySelectorAll('[data-navigation-toggle="toggle"]'))
+        this.closeButtons = Array.from(scope.querySelectorAll('[data-navigation-toggle="close"]'))
 
         this.onToggleClick = () => this.toggle()
         this.onCloseClick = () => this.close()
@@ -88,6 +93,8 @@ export default class Navigation
         this.closeButtons.forEach((btn) => btn.removeEventListener('click', this.onCloseClick))
         document.removeEventListener('keydown', this.onKeydown)
 
-        if (this.isOpen()) this.app.scroll.lenis.start()
+        // Deliberately no lenis.start() here: destroy is deferred, so
+        // app.scroll.lenis is already the NEXT page's instance — its
+        // lifecycle belongs to the transition (Enter.settle starts it).
     }
 }

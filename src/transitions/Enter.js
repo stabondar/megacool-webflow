@@ -19,30 +19,47 @@ export default class Enter
         // stacking context at z 1, capping every z-indexed element inside it
         // (nav, hero overlays), and the new container sits at z 90: above the
         // old page, below the pixel overlay (z 100).
-        gsap.set(data.current.container, { position: 'relative', zIndex: 1 })
+        //
+        // The old container is FROZEN at its current scroll offset (fixed,
+        // negative top) so the window can jump to scroll 0 right away — the
+        // new page's modules must create their ScrollTriggers under fresh-load
+        // conditions, or triggers below the fold evaluate against the OLD
+        // page's scroll position and fire before the page is even visible.
+        this.scrollY = window.scrollY
+        gsap.set(data.current.container, { position: 'fixed', top: -this.scrollY, left: 0, right: 0, zIndex: 1 })
         gsap.set(this.container, { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 90 })
 
         this.app.loaderActive = true
 
-        this.finished = this.run(data)
+        this.finished = this.run()
     }
 
     async run()
     {
-        // Tear down the old page BEFORE building the new one. Module event
-        // namespaces (tick.background, …) and ScrollTrigger.killAll are
-        // global — the old page must release them first, or its teardown would
-        // take the new page's listeners and triggers down with it.
+        // Scope the teardown before anything new registers: every listener on
+        // the app emitter and every live ScrollTrigger at this moment belongs
+        // to the old page. The new page's registrations land after this point,
+        // so the deferred destroy below can tell the two apart. The old page
+        // itself keeps running (canvas, ticks) until the wave has hidden it.
+        this.oldCallbacks = this.snapshotCallbacks()
+        this.oldTriggers = ScrollTrigger.getAll()
+
         this.app.scroll.lenis?.stop()
-        ScrollTrigger.killAll()
-        this.app.trigger('destroy')
         this.app.onceCompleted = true
         this.app.scroll.destroy()
+
+        // With both containers fixed, jumping to top is invisible — the old
+        // page keeps its frozen offset. Must happen BEFORE build() so the new
+        // page measures and arms exactly like a first load.
+        document.documentElement.style.scrollBehavior = 'instant'
+        window.scrollTo(0, 0)
+        document.documentElement.style.scrollBehavior = ''
 
         if (pixelTransition.reduced)
         {
             gsap.set(this.container, { autoAlpha: 1 })
             await this.build()
+            this.destroyPrevious()
             this.settle()
             this.app.loaderActive = false
             this.app.trigger('reveal')
@@ -62,6 +79,8 @@ export default class Enter
 
         await wave
 
+        // The old container is now fully hidden behind the finished wave.
+        this.destroyPrevious()
         this.settle()
     }
 
@@ -78,6 +97,64 @@ export default class Enter
         // same per-page setup as the first load
         await this.checkPages(this.container, this.app)
         await this.app.page?.triggerLoad()
+    }
+
+    snapshotCallbacks()
+    {
+        const snapshot = {}
+        const callbacks = this.app.callbacks
+
+        for (const namespace in callbacks)
+        {
+            snapshot[namespace] = {}
+            for (const event in callbacks[namespace])
+            {
+                snapshot[namespace][event] = [...callbacks[namespace][event]]
+            }
+        }
+
+        return snapshot
+    }
+
+    // Listeners added to the app emitter since the snapshot — the new page's.
+    keptCallbacks()
+    {
+        const kept = { base: {} }
+        const callbacks = this.app.callbacks
+
+        for (const namespace in callbacks)
+        {
+            for (const event in callbacks[namespace])
+            {
+                const old = this.oldCallbacks[namespace]?.[event] ?? []
+                const fresh = callbacks[namespace][event].filter((callback) => !old.includes(callback))
+                if (!fresh.length) continue
+
+                if (!kept[namespace]) kept[namespace] = {}
+                kept[namespace][event] = fresh
+            }
+        }
+
+        return kept
+    }
+
+    // Runs the OLD page's destroy handlers only — never the new page's — and
+    // repairs the fallout: some destroys (Background) off() entire namespaces,
+    // which would also drop listeners the new page just registered, so the
+    // emitter is rebuilt with exactly the post-snapshot listeners afterwards.
+    // Old ScrollTriggers are killed by snapshot for the same reason.
+    destroyPrevious()
+    {
+        const kept = this.keptCallbacks()
+
+        for (const namespace in this.oldCallbacks)
+        {
+            const handlers = this.oldCallbacks[namespace].destroy
+            if (handlers) handlers.forEach((handler) => handler())
+        }
+
+        this.app.callbacks = kept
+        this.oldTriggers.forEach((trigger) => trigger.kill())
     }
 
     // Wave done, old container gone: put the new page back into normal flow at

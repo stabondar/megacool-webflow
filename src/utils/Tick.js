@@ -12,7 +12,20 @@ export default class Time extends EventEmitter
         this.elapsed = 0
         this.delta = 16
 
-        Tempus.add(() => this.tick())
+        // Tempus's rAF loop schedules the next frame AFTER running callbacks
+        // and doesn't catch — an exception escaping here would stop rAF for
+        // the whole site (gsap, lenis, every module) permanently.
+        Tempus.add(() =>
+        {
+            try
+            {
+                this.tick()
+            }
+            catch (error)
+            {
+                console.warn('Tick handler failed:', error)
+            }
+        })
     }
 
     tick()

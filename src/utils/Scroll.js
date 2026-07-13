@@ -14,10 +14,35 @@ export default class Scroll
 
         ScrollTrigger.addEventListener('refresh', () => this.lenis.resize())
 
-        Tempus.add(({ time }) => this.lenis.raf(time))
+        // Tempus's rAF loop schedules the next frame AFTER running callbacks
+        // and doesn't catch — an exception escaping either driver below would
+        // stop rAF for the whole site (gsap, lenis, every module) permanently.
+        // gsap.updateRoot runs every tween AND their user callbacks, so this
+        // is the single most exposed spot in the app.
+        Tempus.add(({ time }) =>
+        {
+            try
+            {
+                this.lenis.raf(time)
+            }
+            catch (error)
+            {
+                console.warn('Lenis raf failed:', error)
+            }
+        })
 
         gsap.ticker.remove(gsap.updateRoot)
-        Tempus.add(({ time }) => gsap.updateRoot(time / 1000))
+        Tempus.add(({ time }) =>
+        {
+            try
+            {
+                gsap.updateRoot(time / 1000)
+            }
+            catch (error)
+            {
+                console.warn('GSAP update failed:', error)
+            }
+        })
 
         this.watchContentHeight()
     }

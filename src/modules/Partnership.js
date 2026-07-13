@@ -129,7 +129,8 @@ export default class Partnership
         this.started = true
 
         this.desktopMq.addEventListener('change', this.applyMode)
-        this.app.scroll.lenis.on('scroll', this.onScroll)
+        this.subscribedLenis = this.app.scroll.lenis
+        this.subscribedLenis.on('scroll', this.onScroll)
         this.applyMode()
     }
 
@@ -149,7 +150,9 @@ export default class Partnership
         if (!this.started) return
 
         this.desktopMq.removeEventListener('change', this.applyMode)
-        this.app.scroll.lenis.off('scroll', this.onScroll)
+        // off() the instance we subscribed to — by deferred-destroy time,
+        // app.scroll.lenis is already the NEXT page's Lenis
+        this.subscribedLenis?.off('scroll', this.onScroll)
 
         if (this.hasTargets) gsap.set(this.targetEls, { clearProps: 'transform' })
     }
