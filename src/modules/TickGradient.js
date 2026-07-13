@@ -1,7 +1,5 @@
 import gsap from 'gsap'
 
-import { toNumber } from '@utils/Math.js'
-
 const DEFAULT_TICK_SELECTOR = '.sm__tick'
 const DEFAULT_FROM = '#e8503a'
 const DEFAULT_TO = '#3ab3a3'
@@ -29,13 +27,8 @@ export default class TickGradient
         this.tickSelector = dataset.tickSelector || DEFAULT_TICK_SELECTOR
         this.from = dataset.from || DEFAULT_FROM
         this.to = dataset.to || DEFAULT_TO
-        this.pulseDuration = toNumber(dataset.pulseDuration, 1.2)
-
-        this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        this.pulseTween = null
 
         this.paintGradient()
-        if (!this.reduced) this.startPulse()
     }
 
     getVisibleTicks()
@@ -57,34 +50,6 @@ export default class TickGradient
         })
     }
 
-    startPulse()
-    {
-        if (this.pulseTween || this.reduced) return
-
-        const ticks = this.getVisibleTicks()
-        if (!ticks.length) return
-
-        this.pulseTween = gsap.to(ticks, {
-            opacity: 1,
-            duration: this.pulseDuration,
-            ease: 'sine.inOut',
-            repeat: -1,
-            yoyo: true,
-        })
-    }
-
-    stopPulse()
-    {
-        this.pulseTween?.kill()
-        this.pulseTween = null
-
-        this.instance.querySelectorAll(this.tickSelector).forEach((tick) =>
-        {
-            gsap.killTweensOf(tick)
-            gsap.set(tick, { clearProps: 'opacity' })
-        })
-    }
-
     resetGradient()
     {
         this.instance.querySelectorAll(this.tickSelector).forEach((tick) => tick.style.removeProperty('--tick-glow'))
@@ -96,11 +61,6 @@ export default class TickGradient
         if (!this.tickSelector) return
 
         this.paintGradient()
-
-        // the pulse tween targets the tick set captured at creation — rebuild
-        // it against the ticks visible at the new size
-        this.stopPulse()
-        this.startPulse()
     }
 
     destroy()
@@ -110,7 +70,6 @@ export default class TickGradient
 
         if (!this.tickSelector) return
 
-        this.stopPulse()
         this.resetGradient()
     }
 }

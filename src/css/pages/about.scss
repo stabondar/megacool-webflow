@@ -1,23 +1,129 @@
+/* VALUES BG */
 
-  /* VALUES BG */
+.section.is--values {
+    background-image:
+        radial-gradient(
+            90% 55% at 50% 108%,
+            rgba(255, 255, 255, 0.7) 0%,
+            rgba(255, 255, 255, 0.3) 25%,
+            rgba(255, 255, 255, 0.08) 50%,
+            transparent 70%
+        ),
+        radial-gradient(95% 50% at 50% 105%, rgba(159, 181, 183, 0.35) 0%, transparent 60%),
+        radial-gradient(110% 70% at 50% 68%, rgba(0, 50, 54, 0.9) 0%, rgba(0, 50, 54, 0.45) 45%, transparent 72%),
+        linear-gradient(180deg, #090909 0%, #090909 35%, #003236 100%);
+}
 
-  .section.is--values {
-    background-image: radial-gradient(90% 55% at 50% 108%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.3) 25%, rgba(255, 255, 255, 0.08) 50%, transparent 70%), radial-gradient(95% 50% at 50% 105%, rgba(159, 181, 183, 0.35) 0%, transparent 60%), radial-gradient(110% 70% at 50% 68%, rgba(0, 50, 54, 0.9) 0%, rgba(0, 50, 54, 0.45) 45%, transparent 72%), linear-gradient(180deg, #090909 0%, #090909 35%, #003236 100%);
-  }
+/* ABOUT CARD SETUP */
 
-  /* ABOUT CARD SETUP */
-
-  .svg__image-content {
+.svg__image-content {
     position: relative;
-    clip-path: shape(from 0 3.724%, line to 3.294% 0, line to 96.706% 0, line to 100% 3.709%, line to 100% 96.291%, line to 96.729% 100%, line to 3.271% 100%, line to 0 96.276%, close);
-  }
+    clip-path: shape(
+        from 0 3.724%,
+        line to 3.294% 0,
+        line to 96.706% 0,
+        line to 100% 3.709%,
+        line to 100% 96.291%,
+        line to 96.729% 100%,
+        line to 3.271% 100%,
+        line to 0 96.276%,
+        close
+    );
+}
 
-  .svg__image-content::before {
+.svg__image-content::before {
     content: '';
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.1);
-    clip-path: shape(evenodd from 0 3.724%, line to 3.294% 0, line to 96.706% 0, line to 100% 3.709%, line to 100% 96.291%, line to 96.729% 100%, line to 3.271% 100%, line to 0 96.276%, close, move to 1px 3.724%, line to 3.294% 1px, line to 96.706% 1px, line to calc(100% - 1px) 3.709%, line to calc(100% - 1px) 96.291%, line to 96.729% calc(100% - 1px), line to 3.271% calc(100% - 1px), line to 1px 96.276%, close);
+    clip-path: shape(
+        evenodd from 0 3.724%,
+        line to 3.294% 0,
+        line to 96.706% 0,
+        line to 100% 3.709%,
+        line to 100% 96.291%,
+        line to 96.729% 100%,
+        line to 3.271% 100%,
+        line to 0 96.276%,
+        close,
+        move to 1px 3.724%,
+        line to 3.294% 1px,
+        line to 96.706% 1px,
+        line to calc(100% - 1px) 3.709%,
+        line to calc(100% - 1px) 96.291%,
+        line to 96.729% calc(100% - 1px),
+        line to 3.271% calc(100% - 1px),
+        line to 1px 96.276%,
+        close
+    );
     pointer-events: none;
     z-index: 1;
-  }
+}
+
+.partner-track.is--about {
+    .accordion {
+        position: relative;
+    }
+    .accordion::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+    }
+    .accordion-head,
+    .accordion-body {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Open/close — JS adds .is-open */
+    .accordion-body.is--about {
+        display: grid;
+        grid-template-rows: 0fr;
+        padding-top: 0;
+        padding-bottom: 0;
+        transition:
+            grid-template-rows 0.6s cubic-bezier(0.38, 0.005, 0.215, 1),
+            padding-top 0.6s cubic-bezier(0.38, 0.005, 0.215, 1),
+            padding-bottom 0.6s cubic-bezier(0.38, 0.005, 0.215, 1);
+    }
+    .accordion.is-open .accordion-body.is--about {
+        grid-template-rows: 1fr;
+        padding-top: var(--_spacing---space-lg);
+        padding-bottom: 15rem;
+    }
+    .accordion-inner {
+        overflow: hidden;
+        min-height: 0;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .accordion.is-open .accordion-inner {
+        opacity: 1;
+    }
+
+    /* Tablet/mobile/short viewport */
+    @media (max-width: 991px), (max-height: 700px) {
+        .partner-track,
+        .partner-sticky {
+            height: auto;
+        }
+        .partner-sticky {
+            position: relative;
+            top: auto;
+        }
+        .accordion-body {
+            grid-template-rows: 1fr;
+            padding-top: var(--_spacing---space-lg);
+            padding-bottom: 10rem;
+            transition: none;
+        }
+        .accordion-inner {
+            opacity: 1;
+        }
+        .accordion-head {
+            padding-bottom: var(--_spacing---space-xs);
+        }
+    }
+}

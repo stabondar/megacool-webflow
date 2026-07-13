@@ -23,7 +23,7 @@ const SPLIT_CLASS = 'th-is-split'
  */
 export default class TextHover
 {
-    constructor(instance, app, main)
+    constructor(instance, app, main, isNav)
     {
         this.instance = instance
         this.app = app
@@ -35,6 +35,7 @@ export default class TextHover
         this.chars = []
 
         this.init()
+        if (isNav) return
         this.app.on('resize', () => this.resize())
         this.app.on('destroy', () => this.destroy())
     }

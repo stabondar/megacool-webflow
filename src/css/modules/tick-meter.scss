@@ -10,3 +10,12 @@
 .smh__data-labels-wrap.is-ready .smh__data-label.is-active {
     visibility: visible;
 }
+
+.sm__tick:not(.is--big) {
+    transform-origin: bottom;
+    transform: scaleY(calc(1 + var(--scale) * 0.25));
+}
+
+.sm__tick {
+    opacity: 1 !important;
+}

@@ -49,7 +49,7 @@ import fragmentShader from '@gl/shards/fragment.glsl'
  *
  * Optional data attributes:
  *   data-base-color      hex   blade base/emissive color (default #0E2D2A)
- *   data-highlight-color hex   hover highlight color (default #275956)
+ *   data-highlight-color hex   hover highlight color (default #07ffe4)
  *   data-gradient-start  0–1   horizontal UV where right-side darkening begins (default 0.35)
  *   data-gradient-darken 0–1   brightness at the right edge, 1 = no change (default 0.55)
  */
@@ -279,8 +279,8 @@ export default class Background
             swaySpeed: 1.2,
             parallaxX: 30,
             parallaxY: 20,
-            highlightColor: dataset.highlightColor || '#275956',
-            highlightPower: 0.2,
+            highlightColor: dataset.highlightColor || '#07ffe4',
+            highlightPower: 2.0,
             highlightLerp: 0.18,
             introYOffset: 220,
         }

@@ -84,12 +84,13 @@ export default class app extends EventEmitter
             onceLoaded: false,
         }
 
-        const [Scroll, Sizes, Time, ModuleLoader, Observer] = await Promise.all([
+        const [Scroll, Sizes, Time, ModuleLoader, Observer, Nav] = await Promise.all([
             import('@utils/Scroll.js'),
             import('@utils/Sizes.js'),
             import('@utils/Tick.js'),
             import('@utils/ModuleLoader.js'),
             import('@utils/Observer.js'),
+            import('@utils/Nav.js'),
         ])
 
         app.scroll = new Scroll.default()
@@ -103,6 +104,8 @@ export default class app extends EventEmitter
 
         app.sizes.on('resize', () => app.trigger('resize'))
         app.tick.on('tick', () => app.trigger('tick'))
+
+        app.nav = new Nav.default(document.querySelector('.nav__wrap', app, main))
     }
 
     async onceLoad(next)
