@@ -1,21 +1,20 @@
 import gsap from 'gsap'
 
 /**
- * Pixel-wave page transition, adapted from the Osmo Supply resource to fit a
- * sequential Barba flow (leave → build next → enter). The overlay is a grid of
- * square pixels; the wave is pure per-pixel opacity — no clip-path — so the
- * pixelated shimmer is actually visible:
+ * Pixelated-wave page transition — faithful port of the Osmo Supply resource,
+ * run in Barba sync mode: both containers are in the DOM, and run(next)
+ * reveals the incoming container with a stepped clip-path mask while each
+ * column's pixels quickly fade in, then back out, along the wavefront — the
+ * shimmering pixel wipe. Portrait viewports rebuild the grid and sweep top to
+ * bottom instead of left to right.
  *
- *   cover()  — during leave, columns light up along the wave direction, each
- *              column's pixels popping in with a random scatter, until the
- *              panel is solid. Teardown then runs hidden underneath.
- *   reveal() — during enter, once the next page is built and shown under the
- *              panel, columns dissolve the same way, uncovering the page.
+ * Leave waits on whenFinished() so the old container stays in the DOM until
+ * the wave has fully passed; Enter starts run(next) and builds the page while
+ * it plays.
  *
- * Both return a Promise that resolves when the sweep completes. The overlay
- * markup is authored in Webflow ([data-transition-wrap] outside the barba
- * container); if it's absent or empty the scaffold is injected, so this also
- * works locally.
+ * The overlay markup is authored in Webflow ([data-transition-wrap] outside
+ * the barba container); if it's absent or empty the scaffold is injected, so
+ * it also works locally.
  */
 
 const PANEL_HTML = `
@@ -27,7 +26,7 @@ const PANEL_HTML = `
 
 class PixelTransition
 {
-    constructor({ columns = 12, duration = 0.8, fade = 0.25, overlap = 0.3 } = {})
+    constructor({ columns = 12, duration = 1, fade = 0.2, overlap = 0.3 } = {})
     {
         this.columns = Math.max(1, columns)
         this.duration = duration
@@ -39,7 +38,35 @@ class PixelTransition
                 ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
                 : false
 
-        this.portrait = false
+        this._deferred = null
+    }
+
+    // Shared completion signal: Leave awaits it, run()/skip() resolve it.
+    // Lazily created so it works no matter whether barba executes the leave or
+    // the enter hook first in sync mode.
+    whenFinished()
+    {
+        if (!this._deferred)
+        {
+            let resolve
+            const promise = new Promise((r) => (resolve = r))
+            this._deferred = { promise, resolve }
+        }
+        return this._deferred.promise
+    }
+
+    finish()
+    {
+        const deferred = this._deferred
+        this._deferred = null
+        deferred?.resolve()
+    }
+
+    // Reduced-motion path: no wave, just release the leave hook.
+    skip()
+    {
+        this.whenFinished()
+        this.finish()
     }
 
     ensureOverlay()
@@ -56,9 +83,9 @@ class PixelTransition
         // wrapper is missing the class.
         wrap.classList.add('transition')
 
-        // The wrapper may be authored in Webflow but empty (or missing the
-        // panel/col/pixel scaffold). Inject the scaffold whenever the pixel
-        // template isn't there, so buildGrid always has something to clone.
+        // The wrapper may be authored in Webflow but empty. Inject the
+        // panel/col/pixel scaffold whenever the pixel template isn't there, so
+        // buildGrid always has something to clone.
         if (!wrap.querySelector('[data-transition-pixel]'))
         {
             wrap.innerHTML = PANEL_HTML
@@ -69,7 +96,7 @@ class PixelTransition
     }
 
     // Fill the panel with `columns` lines, each holding enough pixels to span
-    // the cross axis. Faithful to the Osmo helper, keyed off the panel size.
+    // the cross axis — the Osmo pixelGrid helper, keyed off the panel size.
     buildGrid(portrait)
     {
         const panel = this.panel
@@ -117,75 +144,114 @@ class PixelTransition
         return perPixelMin * (1 - this.overlap) + this.fade * this.overlap
     }
 
-    // The wave, matching the Osmo reference: a hard stepped mask edge with a
-    // band of translucent pixels flashing behind it. Per column i, the pixels
-    // scatter to random partial opacities during the fade window, then SNAP
-    // together to the end state at the column's step time — the synchronized
-    // snap is the hard mask edge; the scatter is the pixel shimmer band. The
-    // flash window ends exactly at the snap, so nothing fights the set.
-    sweep(toOpacity)
+    // Osmo animates the clip with a start-jumping steps ease; fall back to the
+    // plain form if this gsap build can't parse the two-arg config.
+    stepEase()
     {
-        const panel = this.panel
+        const configured = `steps(${this.columns}, start)`
+        try
+        {
+            return gsap.parseEase(configured) ? configured : `steps(${this.columns})`
+        }
+        catch
+        {
+            return `steps(${this.columns})`
+        }
+    }
+
+    /**
+     * The Osmo leave animation, verbatim: stepped clip-path reveal of `next`
+     * (already pinned on top of the old page) + per-column pixel in/out
+     * flicker travelling with the wavefront. Resolves whenFinished() at
+     * duration + endDelay.
+     */
+    run(next)
+    {
+        const finished = this.whenFinished()
+
+        const panel = this.ensureOverlay()
+        const portrait = window.innerHeight > window.innerWidth
+        this.buildGrid(portrait)
+
         const lines = Array.from(panel.querySelectorAll('[data-transition-col]'))
-        const stepDur = Math.max(0.001, (this.duration - this.fade) / this.columns)
+        const allPixels = panel.querySelectorAll('[data-transition-pixel]')
+
+        // Landscape: all four points start on the LEFT edge and the two right
+        // points sweep to 100%, so the new container is revealed left → right.
+        // Portrait: same idea from the TOP edge, revealing top → bottom.
+        const clipFrom = portrait
+            ? 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)'
+            : 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)'
+        const clipTo = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)'
+        const clipStart = Math.min(this.fade, this.duration * 0.5)
+        const clipDuration = Math.max(0.001, this.duration - 2 * clipStart)
+        const stepDur = clipDuration / this.columns
+        const endDelay = this.duration / this.columns
 
         const tl = gsap.timeline()
 
+        gsap.set(allPixels, { opacity: 0, willChange: 'opacity' })
+        gsap.set(panel, { opacity: 1, willChange: 'opacity' })
+
+        gsap.set(next, {
+            autoAlpha: 1,
+            clipPath: clipFrom,
+            webkitClipPath: clipFrom,
+            willChange: 'clip-path',
+            force3D: true,
+            maxHeight: '100dvh',
+        })
+
         lines.forEach((line, i) =>
         {
-            const pixels = line.querySelectorAll('[data-transition-pixel]')
+            const pixels = Array.from(line.querySelectorAll('[data-transition-pixel]'))
             if (!pixels.length) return
 
-            const snapAt = this.fade + i * stepDur
+            const revealTime = clipStart + i * stepDur
+            const fillStart = Math.max(0, revealTime - this.fade)
+            const fadeStart = Math.min(this.duration, revealTime + stepDur)
             const perPixel = this.perPixelDuration(pixels.length)
             const spread = Math.max(0, this.fade - perPixel)
 
+            // Pixels in, just ahead of the wavefront
             tl.to(
                 pixels,
                 {
-                    opacity: () => gsap.utils.random(0.25, 0.75),
+                    opacity: 1,
                     duration: Math.max(0.001, perPixel),
                     ease: 'none',
                     stagger: { amount: spread, from: 'random' },
                 },
-                snapAt - this.fade
+                fillStart
             )
-            tl.set(pixels, { opacity: toOpacity }, snapAt)
+
+            // Pixels out, right behind it
+            tl.to(
+                pixels,
+                {
+                    opacity: 0,
+                    duration: Math.max(0.001, perPixel),
+                    ease: 'none',
+                    stagger: { amount: spread, from: 'random' },
+                },
+                fadeStart
+            )
         })
 
-        return tl
-    }
+        // The stepped mask reveal of the incoming page
+        tl.to(
+            next,
+            { clipPath: clipTo, webkitClipPath: clipTo, ease: this.stepEase(), duration: clipDuration },
+            clipStart
+        )
 
-    cover()
-    {
-        const panel = this.ensureOverlay()
-        this.portrait = window.innerHeight > window.innerWidth
-        this.buildGrid(this.portrait)
+        tl.set(next, { clearProps: 'clipPath,webkitClipPath,willChange,force3D,maxHeight' }, clipStart + clipDuration)
 
-        const allPixels = panel.querySelectorAll('[data-transition-pixel]')
-        gsap.set(allPixels, { opacity: 0, willChange: 'opacity' })
-        gsap.set(panel, { opacity: 1 })
+        tl.set(allPixels, { clearProps: 'willChange' }, this.duration + endDelay)
+        tl.set(panel, { opacity: 0, clearProps: 'willChange' }, this.duration + endDelay)
+        tl.call(() => this.finish(), null, this.duration + endDelay)
 
-        const tl = this.sweep(1)
-
-        return this.toPromise(tl)
-    }
-
-    reveal()
-    {
-        const panel = this.ensureOverlay()
-        const allPixels = panel.querySelectorAll('[data-transition-pixel]')
-
-        const tl = this.sweep(0)
-        tl.set(panel, { opacity: 0 })
-        tl.set(allPixels, { clearProps: 'willChange' })
-
-        return this.toPromise(tl)
-    }
-
-    toPromise(tl)
-    {
-        return new Promise((resolve) => tl.eventCallback('onComplete', resolve))
+        return finished
     }
 }
 

@@ -43,6 +43,7 @@ export default class app extends EventEmitter
             },
             debug: true,
             timeout: 7000,
+            preventRunning: true,
             prevent: ({ el, event }) =>
             {
                 if (event.type == 'click')
