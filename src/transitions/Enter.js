@@ -1,6 +1,8 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
+import { pixelTransition } from '@utils/PixelTransition.js'
+
 gsap.registerPlugin(ScrollTrigger)
 
 export default class Enter
@@ -51,22 +53,34 @@ export default class Enter
         this.reveal()
     }
 
-    // page is ready — fade it in and cue the page intro to play with the fade
+    // page is ready — reveal it and cue the page intro to play with the reveal
     reveal()
     {
-        gsap.fromTo(
-            this.container,
-            { autoAlpha: 0 },
-            {
-                autoAlpha: 1,
-                duration: 0.8,
-                ease: 'power2.inOut',
-                onStart: () =>
+        if (pixelTransition.reduced)
+        {
+            gsap.fromTo(
+                this.container,
+                { autoAlpha: 0 },
                 {
-                    this.app.loaderActive = false
-                    this.app.trigger('reveal')
-                },
-            }
-        )
+                    autoAlpha: 1,
+                    duration: 0.8,
+                    ease: 'power2.inOut',
+                    onStart: () =>
+                    {
+                        this.app.loaderActive = false
+                        this.app.trigger('reveal')
+                    },
+                }
+            )
+            return
+        }
+
+        // Next page is built under the covering panel — show it, fire the intro
+        // cue, then sweep the pixels away to uncover it.
+        gsap.set(this.container, { autoAlpha: 1 })
+        this.app.loaderActive = false
+        this.app.trigger('reveal')
+
+        pixelTransition.reveal()
     }
 }

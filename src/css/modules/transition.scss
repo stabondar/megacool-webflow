@@ -1,0 +1,35 @@
+// Pixel-wave page transition overlay (adapted from Osmo Supply). The panel is
+// injected by @utils/PixelTransition if it isn't authored in Webflow. Swap the
+// pixel colour with --transition-color.
+.transition {
+    z-index: 100;
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    overflow: clip;
+}
+
+.transition__panel {
+    opacity: 0;
+    flex-flow: row;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.transition__col {
+    flex-flow: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    width: 100%;
+    display: flex;
+}
+
+.transition__pixel {
+    aspect-ratio: 1;
+    background-color: #07ffe4;
+    width: 100%;
+}
