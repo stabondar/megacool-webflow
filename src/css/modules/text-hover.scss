@@ -1,4 +1,5 @@
-/* text-hover — scattered char fade on hover, driven by TextHover.js (same reveal as the tick-meter labels) */
+/* text-hover — scattered char fade on hover, driven by TextHover.js (same reveal as the tick-meter labels).
+   data-module sits on the text itself or on a wrapper with data-text targets — chars are descendants either way */
 [data-module='text-hover'] .th-char {
     display: inline-block;
 }

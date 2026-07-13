@@ -48,7 +48,7 @@ accordion {
   .accordion-inner { overflow: hidden; min-height: 0; opacity: 0; transition: opacity .3s; }
   .accordion.is-open .accordion-inner { opacity: 1; }
   .accordion-head { padding-bottom: 0; transition: padding-bottom .55s cubic-bezier(.38,.005,.215,1); }
-  .accordion.is-open .accordion-head { padding-bottom: var(--_spacing---space-xs); }
+  .accordion.is-open .accordion-head { padding-bottom: var(--_spacing---8); }
 
   /* Tablet/mobile/short viewport */
   @media (max-width: 991px), (max-height: 700px) {
@@ -56,5 +56,5 @@ accordion {
     .partner-sticky { position: relative; top: auto; }
     .accordion-body { grid-template-rows: 1fr; transition: none; }
     .accordion-inner { opacity: 1; }
-    .accordion-head { padding-bottom: var(--_spacing---space-xs); }
+    .accordion-head { padding-bottom: var(--_spacing---8); }
   }

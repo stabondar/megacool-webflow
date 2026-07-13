@@ -11,17 +11,15 @@ export default class Enter
         this.container = data.next.container
         this.checkPages = checkPages
 
-        this.tl = gsap.timeline({ defaults: { duration: 0.8, ease: 'power2.inOut' }, onStart: () => this.start() })
+        // the next page builds hidden — its PageEnter waits for the 'reveal'
+        // cue fired as the fade-in starts
+        this.app.loaderActive = true
+        gsap.set(this.container, { autoAlpha: 0 })
 
-        this.tl.fromTo(this.container, { autoAlpha: 0 }, { autoAlpha: 1, onComplete: () => this.complete() })
+        this.start()
     }
 
-    complete()
-    {
-        // this.loader.classList.add('hidden')
-    }
-
-    start()
+    async start()
     {
         document.documentElement.style.scrollBehavior = 'instant'
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
@@ -42,8 +40,33 @@ export default class Enter
         })
 
         this.app.moduleLoader.loadModules(this.container)
-        this.checkPages(this.container, this.app)
+
+        // Instantiate the page class and run its load — transitions get the same
+        // per-page setup (and page enter animation) as the first load
+        await this.checkPages(this.container, this.app)
+        await this.app.page?.triggerLoad()
 
         ScrollTrigger.refresh()
+
+        this.reveal()
+    }
+
+    // page is ready — fade it in and cue the page intro to play with the fade
+    reveal()
+    {
+        gsap.fromTo(
+            this.container,
+            { autoAlpha: 0 },
+            {
+                autoAlpha: 1,
+                duration: 0.8,
+                ease: 'power2.inOut',
+                onStart: () =>
+                {
+                    this.app.loaderActive = false
+                    this.app.trigger('reveal')
+                },
+            }
+        )
     }
 }

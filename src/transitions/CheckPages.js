@@ -9,6 +9,12 @@ export const CheckPages = async (main, app) =>
         {
             const mod = await import('@pages/home')
             return (app.page = new mod.default(main, app))
+            }
+
+        case 'inner':
+        {
+            const mod = await import('@pages/inner')
+            return (app.page = new mod.default(main, app))
         }
     }
 }

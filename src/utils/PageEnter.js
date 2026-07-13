@@ -1,0 +1,40 @@
+import { gsap } from '@utils/GSAP.js'
+
+export default class PageEnter
+{
+    constructor(main, app)
+    {
+        this.main = main
+        this.app = app
+
+        this.destroyed = false
+
+        this.tl = gsap.timeline({
+            paused: true,
+            defaults: { duration: 1, ease: 'power4' },
+            onComplete: () => this.complete(),
+            onStart: () => gsap.set(this.main, {autoAlpha: 1})
+        })
+
+        this.app.on('destroy.pageEnter', () => this.destroy())
+    }
+
+    start()
+    {
+        if (this.app.loaderActive) this.app.on('reveal.pageEnter', () => this.tl.play())
+        else this.tl.play()
+    }
+
+    complete()
+    {}
+
+    destroy()
+    {
+        if (this.destroyed) return
+        this.destroyed = true
+
+        this.app.off('reveal.pageEnter')
+        this.app.off('destroy.pageEnter')
+        this.tl?.kill()
+    }
+}

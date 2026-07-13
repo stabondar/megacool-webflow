@@ -9,14 +9,17 @@ const CHAR_CLASS = 'th-char'
 const SPLIT_CLASS = 'th-is-split'
 
 /**
- * data-module="text-hover" on any text element.
+ * data-module="text-hover" on a text element, or on a parent wrapper (button,
+ * link, card) with the target text marked by data-text — so buttons and plain
+ * text links share the same structure. Multiple data-text targets are allowed.
  * Optional data-attributes: data-duration (per-char fade), data-fade (scatter window).
  *
  * Splits into chars and, on hover, re-reveals them in random order — the same
- * scattered fade the tick-meter labels use (TickMeter.revealText). Hover is
- * bound to the closest [data-cta] wrapper so the whole button triggers it,
- * not just the text. Only active when motion is allowed and the device has a
- * real hover pointer.
+ * scattered fade the tick-meter labels use (TickMeter.revealText). When the
+ * module sits on the text itself, hover is bound to the closest [data-cta]
+ * wrapper so the whole button triggers it; with data-text targets the module
+ * element is the trigger. Only active when motion is allowed and the device
+ * has a real hover pointer.
  */
 export default class TextHover
 {
@@ -28,7 +31,8 @@ export default class TextHover
 
         this.destroyed = false
 
-        this.split = null
+        this.splits = []
+        this.chars = []
 
         this.init()
         this.app.on('resize', () => this.resize())
@@ -45,7 +49,17 @@ export default class TextHover
         this.duration = toNumber(dataset.duration, 0.12)
         this.fade = toNumber(dataset.fade, 0.7)
 
-        this.trigger = this.instance.closest('[data-cta]') ?? this.instance
+        this.targets = Array.from(this.instance.querySelectorAll('[data-text]'))
+
+        if (this.targets.length)
+        {
+            this.trigger = this.instance
+        }
+        else
+        {
+            this.targets = [this.instance]
+            this.trigger = this.instance.closest('[data-cta]') ?? this.instance
+        }
 
         this.onEnter = () => this.reveal()
         this.onLeave = () => this.settle()
@@ -60,14 +74,19 @@ export default class TextHover
 
     setup()
     {
-        if (this.split || !this.canSplit()) return
+        if (this.splits.length || !this.canSplit()) return
 
-        this.split = new SplitText(this.instance, {
-            type: 'chars',
-            charsClass: CHAR_CLASS,
+        this.splits = this.targets.map((target) =>
+        {
+            target.classList.add(SPLIT_CLASS)
+
+            return new SplitText(target, {
+                type: 'chars',
+                charsClass: CHAR_CLASS,
+            })
         })
 
-        this.instance.classList.add(SPLIT_CLASS)
+        this.chars = this.splits.flatMap((split) => split.chars)
 
         this.trigger.addEventListener('mouseenter', this.onEnter)
         this.trigger.addEventListener('mouseleave', this.onLeave)
@@ -81,24 +100,22 @@ export default class TextHover
             this.trigger.removeEventListener('mouseleave', this.onLeave)
         }
 
-        if (this.split)
-        {
-            gsap.killTweensOf(this.split.chars)
-            this.split.revert()
-        }
-        this.split = null
-        this.instance.classList.remove(SPLIT_CLASS)
+        if (this.chars.length) gsap.killTweensOf(this.chars)
+        this.splits.forEach((split) => split.revert())
+
+        this.splits = []
+        this.chars = []
+        this.targets?.forEach((target) => target.classList.remove(SPLIT_CLASS))
     }
 
     reveal()
     {
-        if (this.destroyed || !this.split) return
+        if (this.destroyed || !this.chars.length) return
 
-        const chars = this.split.chars
-        gsap.killTweensOf(chars)
-        gsap.set(chars, { opacity: 0 })
+        gsap.killTweensOf(this.chars)
+        gsap.set(this.chars, { opacity: 0 })
 
-        shuffle(chars).forEach((char) =>
+        shuffle(this.chars).forEach((char) =>
         {
             gsap.to(char, {
                 opacity: 1,
@@ -112,11 +129,10 @@ export default class TextHover
     // Leaving mid-reveal must not strand half-hidden chars — fade them all back.
     settle()
     {
-        if (this.destroyed || !this.split) return
+        if (this.destroyed || !this.chars.length) return
 
-        const chars = this.split.chars
-        gsap.killTweensOf(chars)
-        gsap.to(chars, { opacity: 1, duration: this.duration, ease: 'power2.out' })
+        gsap.killTweensOf(this.chars)
+        gsap.to(this.chars, { opacity: 1, duration: this.duration, ease: 'power2.out' })
     }
 
     apply()

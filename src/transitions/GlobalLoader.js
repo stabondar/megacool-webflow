@@ -8,14 +8,9 @@ export default class GlobalLoader
         this.toLoad = toLoad
         this.main = container.container
 
-        // this.loader = document.querySelector('.loader')
+        this.loader = document.querySelector('.loader')
 
-        gsap.set([this.main, 'nav'], { autoAlpha: 1 })
-
-        // gsap.to(this.loader, {opacity: 0, onComplete: () =>
-        // {
-        //     this.loader.classList.add('hidden')
-        // }})
+        this.app.loaderActive = true
 
         this.load()
     }
@@ -23,6 +18,23 @@ export default class GlobalLoader
     async load()
     {
         await this.toLoad(this.main, this.app)
-        await this.app.page.triggerLoad()
+        await this.app.page?.triggerLoad()
+
+        this.hide()
+    }
+
+    hide()
+    {
+        this.app.loaderActive = false
+        this.app.trigger('reveal')
+
+        if (!this.loader) return
+
+        gsap.to(this.loader, {
+            autoAlpha: 0,
+            duration: 0.8,
+            ease: 'power2.inOut',
+            onComplete: () => this.loader.classList.add('hidden'),
+        })
     }
 }

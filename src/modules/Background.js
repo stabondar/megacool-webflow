@@ -275,7 +275,7 @@ export default class Background
             emissiveIntensity: 1.5,
             metalness: 0.3,
             roughness: 0.4,
-            swayPower: 20,
+            swayPower: 0, // 0 = blades held still (continuous wave motion disabled)
             swaySpeed: 1.2,
             parallaxX: 30,
             parallaxY: 20,
