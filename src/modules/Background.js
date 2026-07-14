@@ -32,11 +32,14 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import CustomShaderMaterial from 'three-custom-shader-material/vanilla'
 import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 import { toNumber } from '@utils/Math.js'
 
 import vertexShader from '@gl/shards/vertex.glsl'
 import fragmentShader from '@gl/shards/fragment.glsl'
+
+gsap.registerPlugin(ScrollTrigger)
 
 /**
  * WebGL animated "shards" background.
@@ -52,6 +55,7 @@ import fragmentShader from '@gl/shards/fragment.glsl'
  *   data-highlight-color hex   hover highlight color (default #07ffe4)
  *   data-gradient-start  0–1   horizontal UV where right-side darkening begins (default 0.35)
  *   data-gradient-darken 0–1   brightness at the right edge, 1 = no change (default 0.55)
+ *   data-scroll-parallax number downward blade movement over the hero scroll range (default 200)
  */
 let instanceCount = 0
 
@@ -66,6 +70,9 @@ export default class Background
         this.destroyed = false
         this.renderer = null
         this.inView = true
+        this.needsRender = true
+        this.introAnimating = false
+        this.scrollProgress = 0
         this.startTime = 0
 
         this.onMouseMove = this.onMouseMove.bind(this)
@@ -112,7 +119,7 @@ export default class Background
         /** -- <renderer> */
         this.renderer = new WebGLRenderer({
             canvas: this.canvas,
-            antialias: true,
+            antialias: false,
             powerPreference: 'high-performance',
         })
         this.renderer.setSize(this.width, this.height)
@@ -194,11 +201,31 @@ export default class Background
         this.visibilityObserver = new IntersectionObserver(
             ([entry]) =>
             {
-                this.inView = entry.isIntersecting
+                // Edge contact can report `isIntersecting` with a zero-area
+                // intersection. Treat that as off-screen so the render passes
+                // stop as soon as the hero has fully left the viewport.
+                this.inView = entry.isIntersecting && entry.intersectionRatio > 0
+                if (this.inView) this.needsRender = true
             },
             { threshold: 0 }
         )
         this.visibilityObserver.observe(this.instance)
+
+        /** -- <scroll parallax> move the blades down while the hero exits. */
+        this.scrollTrigger = ScrollTrigger.create({
+            trigger: this.instance,
+            start: 'top top',
+            end: 'bottom top',
+            invalidateOnRefresh: true,
+            onUpdate: ({ progress }) =>
+            {
+                if (progress === this.scrollProgress) return
+
+                this.scrollProgress = progress
+                this.needsRender = true
+            },
+        })
+        this.scrollProgress = this.scrollTrigger.progress
 
         /** -- <intro reveal> (replaces the original Loader.animateShards) */
         this.introTween = this.playIntro(this.shards)
@@ -217,22 +244,34 @@ export default class Background
 
     onMouseMove(e)
     {
+        if (this.destroyed || !this.inView) return
+
         const rect = this.instance.getBoundingClientRect()
-        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-        this.mouse.y = ((e.clientY - rect.top) / rect.height) * -2 + 1
+        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        const y = ((e.clientY - rect.top) / rect.height) * -2 + 1
+
+        if (x === this.mouse.x && y === this.mouse.y) return
+
+        this.mouse.set(x, y)
+        this.needsRender = true
     }
 
     onTick()
     {
         if (this.destroyed || !this.renderer) return
         if (document.hidden || !this.inView) return
+        if (!this.needsRender && !this.introAnimating && !this.shards.continuous) return
+
+        this.needsRender = false
 
         // Source derived time from performance.now(); app.tick.elapsed is the same
         // real-time clock (ms). Subtracting startTime reproduces the source's
         // "seconds since the loop started" value fed to uTime.
         const elapsed = (this.app.tick.elapsed - this.startTime) * 0.001
-        this.shards.update(elapsed, this.mouse, this.camera)
+        const shardsAnimating = this.shards.update(elapsed, this.mouse, this.camera, this.scrollProgress)
         this.post.render()
+
+        this.needsRender = shardsAnimating || this.introAnimating || this.shards.continuous
     }
 
     resize()
@@ -249,6 +288,7 @@ export default class Background
 
         this.renderer.setSize(this.width, this.height)
         this.post.resize(this.width, this.height)
+        this.needsRender = true
     }
 
     /* ---------------------------------------------------------------------- */
@@ -286,6 +326,9 @@ export default class Background
             swaySpeed: 1.2,
             parallaxX: 30,
             parallaxY: 20,
+            scrollParallax: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 0
+                : toNumber(dataset.scrollParallax, 200),
             highlightColor: dataset.highlightColor || '#07ffe4',
             highlightPower: 2.0,
             highlightLerp: 0.18,
@@ -369,28 +412,39 @@ export default class Background
         const mouseParallax = new Vector2(0, 0)
         const raycaster = new Raycaster()
         const prevMouse = new Vector2(NaN, NaN)
+        let prevScrollProgress = NaN
         let hoveredId = -1
 
-        const update = (elapsed, mouse, camera) =>
+        const update = (elapsed, mouse, camera, scrollProgress) =>
         {
             material.uniforms.uTime.value = elapsed
 
             const targetX = mouse.x * params.parallaxX
             const targetY = mouse.y * params.parallaxY
-            const parallaxMoving =
+            let parallaxMoving =
                 Math.abs(targetX - mouseParallax.x) > 0.01 || Math.abs(targetY - mouseParallax.y) > 0.01
-            mouseParallax.x += (targetX - mouseParallax.x) * 0.05
-            mouseParallax.y += (targetY - mouseParallax.y) * 0.05
+            if (parallaxMoving)
+            {
+                mouseParallax.x += (targetX - mouseParallax.x) * 0.05
+                mouseParallax.y += (targetY - mouseParallax.y) * 0.05
+            }
+            else
+            {
+                mouseParallax.set(targetX, targetY)
+            }
             mesh.position.x = mouseParallax.x
             mesh.position.y = mouseParallax.y
+            group.position.y = params.centerY - scrollProgress * params.scrollParallax
 
             // Raycast only when the pointer moved or the parallax is still settling.
             // When everything is idle the hovered blade can't change, so the costly
             // 256-instance raycast is skipped — the hover fade below still runs every
             // frame, so the visual result is identical.
             const pointerMoved = mouse.x !== prevMouse.x || mouse.y !== prevMouse.y
+            const scrollMoved = scrollProgress !== prevScrollProgress
             prevMouse.copy(mouse)
-            if (pointerMoved || parallaxMoving)
+            prevScrollProgress = scrollProgress
+            if (pointerMoved || parallaxMoving || scrollMoved)
             {
                 mesh.updateWorldMatrix(true, false)
                 raycaster.setFromCamera(mouse, camera)
@@ -417,6 +471,8 @@ export default class Background
                 }
             }
             if (dirty) hoverAttr.needsUpdate = true
+
+            return parallaxMoving || dirty
         }
 
         const destroy = () =>
@@ -428,7 +484,7 @@ export default class Background
             mesh.dispose()
         }
 
-        return { params, introAmounts, introAttr, update, destroy }
+        return { params, introAmounts, introAttr, continuous: params.swayPower !== 0, update, destroy }
     }
 
     playIntro(shards, { duration = 1.2, stagger = 2, ease = 'power3.out' } = {})
@@ -441,6 +497,7 @@ export default class Background
         attr.needsUpdate = true
 
         const targets = Array.from({ length: count }, () => ({ v: 0 }))
+        this.introAnimating = true
 
         return gsap.to(targets, {
             v: 1,
@@ -451,6 +508,12 @@ export default class Background
             {
                 for (let i = 0; i < count; i++) amounts[i] = targets[i].v
                 attr.needsUpdate = true
+                this.needsRender = true
+            },
+            onComplete: () =>
+            {
+                this.introAnimating = false
+                this.needsRender = true
             },
         })
     }
@@ -734,6 +797,7 @@ export default class Background
         if (!this.renderer) return
 
         this.introTween?.kill()
+        this.scrollTrigger?.kill()
         this.visibilityObserver.disconnect()
         window.removeEventListener('mousemove', this.onMouseMove)
 
