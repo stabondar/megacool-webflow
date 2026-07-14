@@ -26,9 +26,9 @@ export default class Title
         gsap.set(this.split.lines, {
             overflow: 'hidden',
             paddingTop: '0.1em',
-            paddingBottom: '0.02em',
+            paddingBottom: '0.07em',
             marginTop: '-0.1em',
-            marginBottom: '-0.02em',
+            marginBottom: '-0.07em',
         })
 
         this.tl = gsap.timeline({ paused: true, defaults: { duration: 1, ease: 'power3' } })
