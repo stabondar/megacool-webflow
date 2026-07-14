@@ -35,3 +35,36 @@
         height: 1px;
     }
 }
+
+// Static "spotlight" — the inverse of the Valkai cursor spotlight. Valkai
+// *reveals* the grid in a disc that follows the pointer; here we *hide* the
+// grid in a fixed disc at the centre so page content sits on a calm, grid-free
+// area while the lines stay visible toward the edges. It masks the whole
+// container, so both line layers fade together. Pure CSS, no pointer tracking.
+//
+// Opt in per element with the data-spotlight attribute. Tune the clearing with
+// these custom properties (set inline in Webflow, or globally on :root):
+//   --lines-bg-spot-x / --lines-bg-spot-y   radius of the clearing (% of box w/h)
+//   --lines-bg-spot-clear                   inner radius kept fully clear
+//   --lines-bg-spot-cx / --lines-bg-spot-cy centre of the clearing
+// To fade the edges instead (the other direction), swap the stops:
+//   transparent -> black at 0%, black -> transparent at 100%.
+.lines_bg[data-spotlight] {
+    // transparent = grid hidden, black = grid shown. Ellipse radii are a % of
+    // the box, so the clearing scales with the section on every breakpoint.
+    --lines-bg-spot-x: 55%;
+    --lines-bg-spot-y: var(--lines-bg-spot-x);
+    --lines-bg-spot-cx: 50%;
+    --lines-bg-spot-cy: var(--lines-bg-spot-cx);
+    --lines-bg-spot-clear: 66%;
+    $spotlight: radial-gradient(
+        ellipse var(--lines-bg-spot-x, 58%) var(--lines-bg-spot-y, 58%) at var(--lines-bg-spot-cx, 50%)
+            var(--lines-bg-spot-cy, 50%),
+        transparent 0%,
+        transparent var(--lines-bg-spot-clear, 18%),
+        black 100%
+    );
+
+    -webkit-mask-image: $spotlight; // Safari still needs the prefixed pair
+    mask-image: $spotlight;
+}

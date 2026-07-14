@@ -1,20 +1,23 @@
 /**
  * data-module="lines-background" on a full-bleed container placed behind your
  * content. Fills the box with an evenly spaced grid of lines, recomputing the
- * line count on resize so the spacing stays consistent. (The Valkai spotlight
- * — mouse-tracked radial reveal — is intentionally omitted; this is just the
- * static background grid.)
+ * line count on resize so the spacing stays consistent. Unlike the Valkai
+ * spotlight (a mouse-tracked radial *reveal*), the optional spotlight here is a
+ * static, CSS-only radial mask that instead *clears* the grid out of the
+ * centre so content sits on a calm area — see `data-spotlight` and lines-bg.scss.
  *
  * Markup — one container per axis; this script fills each with `.line_bg`
  * children that the CSS styles into lines:
  *
- *   <div data-module="lines-background" data-gap="80" class="lines_bg">
+ *   <div data-module="lines-background" data-gap="80" data-spotlight class="lines_bg">
  *     <div class="lines_bg-vertical"></div>
  *     <div class="lines_bg-horizontal"></div>
  *   </div>
  *
  *   data-gap         target px cell size (required)
  *   data-gap-mobile  target px cell size at <=767px (optional; falls back to data-gap)
+ *   data-spotlight   opt in to the static centre-clearing radial mask (CSS only,
+ *                    no pointer tracking); tune with the --lines-bg-spot-* vars
  *
  * Cells are kept square: data-gap sets the *target* size, and the actual line
  * counts are chosen so the cells come out as close to square as the container

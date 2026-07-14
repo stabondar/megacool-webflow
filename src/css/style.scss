@@ -13,11 +13,29 @@
 @use './modules/transition.scss' as *;
 @use './modules/nav.scss' as *;
 @use './modules/change-nav.scss' as *;
+@use './modules/hubspot-form.scss' as *;
+@use './modules/home-cards.scss' as *;
+@use './modules/framed-image.scss' as *;
 
 @use './pages/about' as *;
 @use './pages/technology.scss' as *;
+@use './pages/contact.scss' as *;
 
 @use './editor.scss' as *;
+
+// Alliance No.2 stylistic alternates — single-story 'a' (ss01) and 'g' (ss02),
+// plus 'salt' — matching the Figma "Desktop/Title XL" spec (node 340:88).
+// font-feature-settings inherits, so setting it on <body> applies the alternate
+// letterforms to every Alliance No text on the site (headings and body copy).
+body {
+    font-feature-settings:
+        'ss01' 1,
+        'ss02' 1,
+        'kern',
+        'liga',
+        'calt',
+        'salt' 1 !important;
+}
 
 a:is(.w-webflow-badge) {
     display: none !important;

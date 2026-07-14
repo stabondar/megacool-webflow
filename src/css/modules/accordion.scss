@@ -1,60 +1,140 @@
-/* .accordion
-{
-    &.active
-    {
-        .accordion_content
-        {
-            grid-template-rows: 1fr;
-        }
+/* Home page only — inner pages (data-transition-page="inner") use the
+   .accordion.is--about variant with its own styling in pages/about.scss.
+   Gating on the page container keeps this ring off any reused .is--home accordion. */
+[data-transition-page='home'] .accordion.is--home {
+    /* Chamfered frame: transparent interior, only the border ring is painted.
+       Tune these four knobs (keep --radius >= --stroke-w and <= --chamfer): */
+    --stroke: rgb(255 255 255 / 0.32); /* border colour */
+    --stroke-w: 1px; /* border thickness */
+    --radius: 0.5rem; /* corner radius (all corners + chamfer blend arcs) */
+    --chamfer: 1.75rem; /* diagonal cut size, measured from the corner along each edge */
 
-        .accordion_icon
-        {
-            transform: rotate(45deg);
-            // color: var(--color--main);
+    /* Derived geometry — do not tune. For blend arcs of radius R tangent to a
+       45° diagonal: the edge meets the arc at --_t from the corner, the arc
+       bulges --_k past its tangent, the diagonal ends --_c from the corner,
+       and the inner ring path shifts --_dw along the diagonal's normal. */
+    --_k: calc(var(--radius) * 0.2929); /* R * (1 - 1/sqrt2) */
+    --_t: calc(var(--chamfer) + var(--radius) * 0.4142); /* chamfer + R * (sqrt2 - 1) */
+    --_c: calc(var(--chamfer) - var(--_k));
+    --_dw: calc(var(--stroke-w) * 0.7071); /* w / sqrt2 */
+    --_ri: calc(var(--radius) - var(--stroke-w)); /* inner ring corner radius */
+
+    position: relative;
+    background: transparent; /* interior stays see-through */
+
+    /* Fallback for engines without clip-path: shape() (pre-2025): a plain
+       rounded hairline, no chamfer. Without this guard the unclipped ::after
+       below would paint the whole card with --stroke. */
+    border: var(--stroke-w) solid var(--stroke);
+    border-radius: var(--radius);
+
+    @supports (clip-path: shape(from 0 0, line to 100% 100%)) {
+        border: none;
+        border-radius: 0;
+
+        /* Clips the accordion's own content to the chamfered outline */
+        clip-path: shape(
+            from 0 var(--radius),
+            arc to var(--radius) 0 of var(--radius) cw,
+            line to calc(100% - var(--radius)) 0,
+            arc to 100% var(--radius) of var(--radius) cw,
+            line to 100% calc(100% - var(--_t)),
+            arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--radius) cw,
+            line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+            arc to calc(100% - var(--_t)) 100% of var(--radius) cw,
+            line to var(--radius) 100%,
+            arc to 0 calc(100% - var(--radius)) of var(--radius) cw,
+            close
+        );
+
+        /* The border ring: evenodd double path — outer chamfered outline plus
+           the same outline inset by the stroke width. The fill between the two
+           paths is the ring, so the band follows the diagonal chamfer too (a
+           rectangular mask can't stroke the diagonal). */
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            pointer-events: none;
+            background: var(--stroke);
+            clip-path: shape(
+                evenodd from 0 var(--radius),
+                arc to var(--radius) 0 of var(--radius) cw,
+                line to calc(100% - var(--radius)) 0,
+                arc to 100% var(--radius) of var(--radius) cw,
+                line to 100% calc(100% - var(--_t)),
+                arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--radius) cw,
+                line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+                arc to calc(100% - var(--_t)) 100% of var(--radius) cw,
+                line to var(--radius) 100%,
+                arc to 0 calc(100% - var(--radius)) of var(--radius) cw,
+                close,
+                move to var(--stroke-w) var(--radius),
+                arc to var(--radius) var(--stroke-w) of var(--_ri) cw,
+                line to calc(100% - var(--radius)) var(--stroke-w),
+                arc to calc(100% - var(--stroke-w)) var(--radius) of var(--_ri) cw,
+                line to calc(100% - var(--stroke-w)) calc(100% - var(--_t)),
+                arc to calc(100% - var(--_k) - var(--_dw)) calc(100% - var(--_c) - var(--_dw)) of var(--_ri) cw,
+                line to calc(100% - var(--_c) - var(--_dw)) calc(100% - var(--_k) - var(--_dw)),
+                arc to calc(100% - var(--_t)) calc(100% - var(--stroke-w)) of var(--_ri) cw,
+                line to var(--radius) calc(100% - var(--stroke-w)),
+                arc to var(--stroke-w) calc(100% - var(--radius)) of var(--_ri) cw,
+                close
+            );
         }
     }
 }
-
-.accordion_content
-{
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows var(--ease);
+.accordion-head,
+.accordion-body {
+    position: relative;
+    z-index: 1;
 }
 
-.accordion_icon
-{
-    transition: transform var(--ease), color var(--ease);
-} */
+/* Open/close — JS adds .is-open */
+.accordion-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.6s cubic-bezier(0.38, 0.005, 0.215, 1);
+}
+.accordion.is-open .accordion-body {
+    grid-template-rows: 1fr;
+}
+.accordion-inner {
+    overflow: hidden;
+    min-height: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.accordion.is-open .accordion-inner {
+    opacity: 1;
+}
+.accordion-head {
+    padding-bottom: 0;
+    transition: padding-bottom 0.55s cubic-bezier(0.38, 0.005, 0.215, 1);
+}
+.accordion.is-open .accordion-head {
+    padding-bottom: var(--_spacing---8);
+}
 
-accordion {
-    position: relative;
-    clip-path: shape(from 0 8px, arc to 8px 0 of 8px cw, line to calc(100% - 8px) 0, arc to 100% 8px of 8px cw, line to 100% calc(100% - 22px), line to calc(100% - 27px) 100%, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close);
-  }
-  .accordion::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 5;
-    pointer-events: none;
-    background: linear-gradient(160deg, rgba(255,255,255,.5), rgba(255,255,255,.2) 46%, rgba(255,255,255,.5));
-    clip-path: shape(evenodd from 0 8px, arc to 8px 0 of 8px cw, line to calc(100% - 8px) 0, arc to 100% 8px of 8px cw, line to 100% calc(100% - 22px), line to calc(100% - 27px) 100%, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close, move to 1px 8px, arc to 8px 1px of 7px cw, line to calc(100% - 8px) 1px, arc to calc(100% - 1px) 8px of 7px cw, line to calc(100% - 1px) calc(100% - 22px), line to calc(100% - 27px) calc(100% - 1px), line to 8px calc(100% - 1px), arc to 1px calc(100% - 8px) of 7px cw, close);
-  }
-  .accordion-head, .accordion-body { position: relative; z-index: 1; }
-
-  /* Open/close — JS adds .is-open */
-  .accordion-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .6s cubic-bezier(.38,.005,.215,1); }
-  .accordion.is-open .accordion-body { grid-template-rows: 1fr; }
-  .accordion-inner { overflow: hidden; min-height: 0; opacity: 0; transition: opacity .3s; }
-  .accordion.is-open .accordion-inner { opacity: 1; }
-  .accordion-head { padding-bottom: 0; transition: padding-bottom .55s cubic-bezier(.38,.005,.215,1); }
-  .accordion.is-open .accordion-head { padding-bottom: var(--_spacing---8); }
-
-  /* Tablet/mobile/short viewport */
-  @media (max-width: 991px), (max-height: 700px) {
-    .partner-track, .partner-sticky { height: auto; }
-    .partner-sticky { position: relative; top: auto; }
-    .accordion-body { grid-template-rows: 1fr; transition: none; }
-    .accordion-inner { opacity: 1; }
-    .accordion-head { padding-bottom: var(--_spacing---8); }
-  }
+/* Tablet/mobile/short viewport */
+@media (max-width: 991px), (max-height: 700px) {
+    .partner-track,
+    .partner-sticky {
+        height: auto;
+    }
+    .partner-sticky {
+        position: relative;
+        top: auto;
+    }
+    .accordion-body {
+        grid-template-rows: 1fr;
+        transition: none;
+    }
+    .accordion-inner {
+        opacity: 1;
+    }
+    .accordion-head {
+        padding-bottom: var(--_spacing---8);
+    }
+}

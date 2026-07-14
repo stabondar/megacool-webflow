@@ -55,7 +55,8 @@ gsap.registerPlugin(ScrollTrigger)
  *   data-highlight-color hex   hover highlight color (default #07ffe4)
  *   data-gradient-start  0–1   horizontal UV where right-side darkening begins (default 0.35)
  *   data-gradient-darken 0–1   brightness at the right edge, 1 = no change (default 0.55)
- *   data-scroll-parallax number downward blade movement over the hero scroll range (default 200)
+ *   data-scroll-parallax        number desktop downward blade movement (default 200)
+ *   data-scroll-parallax-mobile number mobile downward blade movement (default 60)
  */
 let instanceCount = 0
 
@@ -320,9 +321,19 @@ export default class Background
         this.camera.aspect = this.width / this.height
         this.camera.updateProjectionMatrix()
 
+        this.shards.params.scrollParallax = this.getScrollParallax(this.instance.dataset)
         this.renderer.setSize(this.width, this.height)
         this.post.resize(this.width, this.height)
         this.needsRender = true
+    }
+
+    getScrollParallax(dataset)
+    {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 0
+
+        return window.matchMedia('(max-width: 991px)').matches
+            ? toNumber(dataset.scrollParallaxMobile, 60)
+            : toNumber(dataset.scrollParallax, 200)
     }
 
     /* ---------------------------------------------------------------------- */
@@ -360,9 +371,7 @@ export default class Background
             swaySpeed: 1.2,
             parallaxX: 30,
             parallaxY: 20,
-            scrollParallax: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                ? 0
-                : toNumber(dataset.scrollParallax, 200),
+            scrollParallax: this.getScrollParallax(dataset),
             highlightColor: dataset.highlightColor || '#07ffe4',
             highlightPower: 2.0,
             highlightLerp: 0.18,

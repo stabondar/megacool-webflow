@@ -1,0 +1,127 @@
+.corner-frame {
+    --stroke: var(--_colors---black); /* line colour */
+    --stroke-w: 1px; /* line thickness */
+    --chamfer: 1.75rem; /* diagonal cut, from the corner along each edge */
+    --soft: 0.5rem;
+
+    &.is-top-left {
+        --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+        --_k: calc(var(--soft) * 0.2929);
+        --_c: calc(var(--chamfer) - var(--_k));
+        --_dw: calc(var(--stroke-w) * 0.7071); /* stroke width along the diagonal normal */
+        --_ri: max(0px, calc(var(--soft) - var(--stroke-w))); /* inner blend arc radius */
+        --_di: calc(var(--chamfer) + var(--stroke-w) * 0.4142); /* sharp inner diagonal offset */
+        background: var(--stroke);
+        clip-path: shape(
+            from 100% 0,
+            line to var(--_t) 0,
+            arc to var(--_c) var(--_k) of var(--soft) ccw,
+            line to var(--_k) var(--_c),
+            arc to 0 var(--_t) of var(--soft) ccw,
+            line to 0 100%,
+            line to var(--stroke-w) 100%,
+            line to var(--stroke-w) var(--_t),
+            arc to calc(var(--_k) + var(--_dw)) calc(var(--_c) + var(--_dw)) of var(--_ri) cw,
+            line to calc(var(--_c) + var(--_dw)) calc(var(--_k) + var(--_dw)),
+            arc to var(--_t) var(--stroke-w) of var(--_ri) cw,
+            line to 100% var(--stroke-w),
+            close
+        );
+    }
+    &.is-top-right {
+        /* derived — do not tune */
+        --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+        --_k: calc(var(--soft) * 0.2929);
+        --_c: calc(var(--chamfer) - var(--_k));
+        --_dw: calc(var(--stroke-w) * 0.7071); /* stroke width along the diagonal normal */
+        --_ri: max(0px, calc(var(--soft) - var(--stroke-w))); /* inner blend arc radius */
+        --_di: calc(var(--chamfer) + var(--stroke-w) * 0.4142); /* sharp inner diagonal offset */
+        background: var(--stroke);
+        clip-path: shape(
+            from 0 0,
+            line to calc(100% - var(--_t)) 0,
+            arc to calc(100% - var(--_c)) var(--_k) of var(--soft) cw,
+            line to calc(100% - var(--_k)) var(--_c),
+            arc to 100% var(--_t) of var(--soft) cw,
+            line to 100% 100%,
+            line to calc(100% - var(--stroke-w)) 100%,
+            line to calc(100% - var(--stroke-w)) var(--_t),
+            arc to calc(100% - var(--_k) - var(--_dw)) calc(var(--_c) + var(--_dw)) of var(--_ri) ccw,
+            line to calc(100% - var(--_c) - var(--_dw)) calc(var(--_k) + var(--_dw)),
+            arc to calc(100% - var(--_t)) var(--stroke-w) of var(--_ri) ccw,
+            line to 0 var(--stroke-w),
+            close
+        );
+    }
+    &.is-bot-right {
+        --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+        --_k: calc(var(--soft) * 0.2929);
+        --_c: calc(var(--chamfer) - var(--_k));
+        --_dw: calc(var(--stroke-w) * 0.7071); /* stroke width along the diagonal normal */
+        --_ri: max(0px, calc(var(--soft) - var(--stroke-w))); /* inner blend arc radius */
+        --_di: calc(var(--chamfer) + var(--stroke-w) * 0.4142); /* sharp inner diagonal offset */
+        background: var(--stroke);
+        clip-path: shape(
+            from 0 100%,
+            line to calc(100% - var(--_t)) 100%,
+            arc to calc(100% - var(--_c)) calc(100% - var(--_k)) of var(--soft) ccw,
+            line to calc(100% - var(--_k)) calc(100% - var(--_c)),
+            arc to 100% calc(100% - var(--_t)) of var(--soft) ccw,
+            line to 100% 0,
+            line to calc(100% - var(--stroke-w)) 0,
+            line to calc(100% - var(--stroke-w)) calc(100% - var(--_t)),
+            arc to calc(100% - var(--_k) - var(--_dw)) calc(100% - var(--_c) - var(--_dw)) of var(--_ri) cw,
+            line to calc(100% - var(--_c) - var(--_dw)) calc(100% - var(--_k) - var(--_dw)),
+            arc to calc(100% - var(--_t)) calc(100% - var(--stroke-w)) of var(--_ri) cw,
+            line to 0 calc(100% - var(--stroke-w)),
+            close
+        );
+    }
+    &.is-bot-left {
+        --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+        --_k: calc(var(--soft) * 0.2929);
+        --_c: calc(var(--chamfer) - var(--_k));
+        --_dw: calc(var(--stroke-w) * 0.7071); /* stroke width along the diagonal normal */
+        --_ri: max(0px, calc(var(--soft) - var(--stroke-w))); /* inner blend arc radius */
+        --_di: calc(var(--chamfer) + var(--stroke-w) * 0.4142); /* sharp inner diagonal offset */
+
+        background: var(--stroke);
+        clip-path: shape(
+            from 100% 100%,
+            line to var(--_t) 100%,
+            arc to var(--_c) calc(100% - var(--_k)) of var(--soft) cw,
+            line to var(--_k) calc(100% - var(--_c)),
+            arc to 0 calc(100% - var(--_t)) of var(--soft) cw,
+            line to 0 0,
+            line to var(--stroke-w) 0,
+            line to var(--stroke-w) calc(100% - var(--_t)),
+            arc to calc(var(--_k) + var(--_dw)) calc(100% - var(--_c) - var(--_dw)) of var(--_ri) ccw,
+            line to calc(var(--_c) + var(--_dw)) calc(100% - var(--_k) - var(--_dw)),
+            arc to var(--_t) calc(100% - var(--stroke-w)) of var(--_ri) ccw,
+            line to 100% calc(100% - var(--stroke-w)),
+            close
+        );
+    }
+}
+
+.framed-image {
+    clip-path: shape(
+        from 0 1.9571rem,
+        arc to 0.1464rem 1.6036rem of 0.5rem cw,
+        line to 1.6036rem 0.1464rem,
+        arc to 1.9571rem 0 of 0.5rem cw,
+        line to calc(100% - 1.9571rem) 0,
+        arc to calc(100% - 1.6036rem) 0.1464rem of 0.5rem cw,
+        line to calc(100% - 0.1464rem) 1.6036rem,
+        arc to 100% 1.9571rem of 0.5rem cw,
+        line to 100% calc(100% - 1.9571rem),
+        arc to calc(100% - 0.1464rem) calc(100% - 1.6036rem) of 0.5rem cw,
+        line to calc(100% - 1.6036rem) calc(100% - 0.1464rem),
+        arc to calc(100% - 1.9571rem) 100% of 0.5rem cw,
+        line to 1.9571rem 100%,
+        arc to 1.6036rem calc(100% - 0.1464rem) of 0.5rem cw,
+        line to 0.1464rem calc(100% - 1.6036rem),
+        arc to 0 calc(100% - 1.9571rem) of 0.5rem cw,
+        close
+    );
+}

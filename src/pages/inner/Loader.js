@@ -37,6 +37,7 @@ export default class Loader extends PageEnter
         const heading = this.hero.querySelector('h1, .h-h1')
         const descrs = [...this.hero.querySelectorAll('.paragraph, p')]
         const btns = [...this.hero.querySelectorAll('.button, .btn')]
+        const els = this.hero.querySelectorAll('[data-load]')
 
         if (heading) this.tl.fromTo(this.words(heading), { yPercent: 110 }, { yPercent: 0, stagger: 0.05 }, 0.2)
 
@@ -44,6 +45,7 @@ export default class Loader extends PageEnter
         if (descrs.length) this.tl.fromTo(descrs, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, stagger: 0.1 }, '<0.2')
 
         if (btns.length) this.tl.fromTo(btns, { autoAlpha: 0 }, { autoAlpha: 1, stagger: 0.1 }, '<0.2')
+        if (els.length) this.tl.fromTo(els, { autoAlpha: 0 }, { autoAlpha: 1, stagger: 0.1 }, '<0.2')
     }
 
     complete()

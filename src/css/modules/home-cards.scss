@@ -1,0 +1,18 @@
+.home-card,
+.card.is--white {
+    clip-path: shape(
+        from 0 0.5rem,
+        arc to 0.5rem 0 of 0.5rem cw,
+        line to calc(100% - 1.9571rem) 0,
+        arc to calc(100% - 1.6036rem) 0.1464rem of 0.5rem cw,
+        line to calc(100% - 0.1464rem) 1.6036rem,
+        arc to 100% 1.9571rem of 0.5rem cw,
+        line to 100% calc(100% - 0.5rem),
+        arc to calc(100% - 0.5rem) 100% of 0.5rem cw,
+        line to 1.9571rem 100%,
+        arc to 1.6036rem calc(100% - 0.1464rem) of 0.5rem cw,
+        line to 0.1464rem calc(100% - 1.6036rem),
+        arc to 0 calc(100% - 1.9571rem) of 0.5rem cw,
+        close
+    );
+}

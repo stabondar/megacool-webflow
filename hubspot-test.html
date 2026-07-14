@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>HubSpot form — module test</title>
+
+        <!-- Throwaway harness to eyeball the HubspotForm module + SCSS in
+             isolation. Serve via the dev server: http://localhost:4321/hubspot-test.html
+             Not wired into the build; safe to delete. -->
+        <style>
+            /* Stand-ins for the Webflow runtime tokens the SCSS references */
+            :root {
+                --_colors---black: #090909;
+                --_colors---white: #ffffff;
+                --_colors---teal-500: #07ffe4;
+                --_spacing---16: 1rem;
+            }
+            body {
+                margin: 0;
+                padding: 48px 24px;
+                font-family: -apple-system, system-ui, sans-serif;
+                background: #fafafa;
+                color: #111;
+                display: flex;
+                justify-content: center;
+            }
+            .wrap {
+                width: 100%;
+                max-width: 760px;
+            }
+            h1 {
+                font-size: 18px;
+                font-weight: 600;
+                margin: 0 0 8px;
+            }
+            .note {
+                font-size: 13px;
+                color: #666;
+                margin: 0 0 32px;
+                line-height: 1.5;
+            }
+        </style>
+
+        <script type="module">
+            import '/src/css/modules/hubspot-form.scss'
+            import HubspotForm from '/src/modules/HubspotForm.js'
+
+            // Minimal stand-in for the app EventEmitter surface the module uses
+            const app = {
+                on() {},
+                off() {},
+                trigger(name) {
+                    console.log('[hubspotForm event]', name)
+                },
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const el = document.querySelector('[data-module="hubspot-form"]')
+                new HubspotForm(el, app, document.body)
+            })
+        </script>
+    </head>
+    <body>
+        <div class="wrap">
+            <h1>HubSpot form — module test</h1>
+            <p class="note">
+                Rendered by <code>src/modules/HubspotForm.js</code> via
+                <code>HubSpotLoader</code> (region eu1). Styled by
+                <code>src/css/modules/hubspot-form.scss</code>.
+            </p>
+            <div data-module="hubspot-form"></div>
+        </div>
+    </body>
+</html>

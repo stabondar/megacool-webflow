@@ -2,6 +2,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 import { pixelTransition } from '@utils/PixelTransition.js'
+import { scrollToAnchor } from '@utils/ScrollToAnchor.js'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -12,6 +13,10 @@ export default class Enter
         this.app = app
         this.container = data.next.container
         this.checkPages = checkPages
+
+        // The clicked link (or 'back'/'forward'/'popstate' for history nav).
+        // A data-anchor value on it is scrolled to once the page settles.
+        this.trigger = data.trigger
 
         // Sync mode: both containers are in the DOM. Pin the incoming page on
         // top immediately; the wave's clip-path controls what's visible.
@@ -180,5 +185,9 @@ export default class Enter
         this.app.scroll.lenis.start()
         ScrollTrigger.refresh()
         this.app.trigger('transitionSettled')
+
+        // Layout is final and Lenis is live — if the trigger carried a
+        // data-anchor, scroll to it now (jump instantly under reduced motion).
+        scrollToAnchor(this.trigger, this.app, { immediate: pixelTransition.reduced })
     }
 }

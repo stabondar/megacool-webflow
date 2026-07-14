@@ -1,134 +1,377 @@
 .ssp__wrap {
-    background-image: radial-gradient(90% 55% at 50% 108%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.3) 25%, rgba(255, 255, 255, 0.08) 50%, transparent 70%), radial-gradient(95% 50% at 50% 105%, rgba(159, 181, 183, 0.35) 0%, transparent 60%), radial-gradient(110% 70% at 50% 68%, rgba(0, 50, 54, 0.9) 0%, rgba(0, 50, 54, 0.45) 45%, transparent 72%), linear-gradient(180deg, #090909 0%, #090909 35%, #003236 100%);
-  }
+    background-image:
+        radial-gradient(
+            90% 55% at 50% 108%,
+            rgba(255, 255, 255, 0.7) 0%,
+            rgba(255, 255, 255, 0.3) 25%,
+            rgba(255, 255, 255, 0.08) 50%,
+            transparent 70%
+        ),
+        radial-gradient(95% 50% at 50% 105%, rgba(159, 181, 183, 0.35) 0%, transparent 60%),
+        radial-gradient(110% 70% at 50% 68%, rgba(0, 50, 54, 0.9) 0%, rgba(0, 50, 54, 0.45) 45%, transparent 72%),
+        linear-gradient(180deg, #090909 0%, #090909 35%, #003236 100%);
+}
 
-  /* CARD 2 SETUP */
+.ssp__card {
+    .corner-frame {
+        --stroke: color-mix(in srgb, var(--_colors---white) 50%, transparent);
+    }
 
-  .ssp__image-content.is--1 {
+    &.is--1 {
+        .ssp__col.is-img {
+            clip-path: shape(
+                from 0 1.9571rem,
+                arc to 0.1464rem 1.6036rem of 0.5rem cw,
+                line to 1.6036rem 0.1464rem,
+                arc to 1.9571rem 0 of 0.5rem cw,
+                line to 100% 0,
+                line to 100% 0,
+                line to 100% calc(100% - 1.9571rem),
+                arc to calc(100% - 0.1464rem) calc(100% - 1.6036rem) of 0.5rem cw,
+                line to calc(100% - 1.6036rem) calc(100% - 0.1464rem),
+                arc to calc(100% - 1.9571rem) 100% of 0.5rem cw,
+                line to 0 100%,
+                line to 0 100%,
+                close
+            );
+        }
+    }
+
+    &.is--2 {
+        .ssp__col.is-img {
+            clip-path: shape(
+                from 0 0,
+                line to 0 0,
+                line to calc(100% - 1.9571rem) 0,
+                arc to calc(100% - 1.6036rem) 0.1464rem of 0.5rem cw,
+                line to calc(100% - 0.1464rem) 1.6036rem,
+                arc to 100% 1.9571rem of 0.5rem cw,
+                line to 100% 100%,
+                line to 100% 100%,
+                line to 1.9571rem 100%,
+                arc to 1.6036rem calc(100% - 0.1464rem) of 0.5rem cw,
+                line to 0.1464rem calc(100% - 1.6036rem),
+                arc to 0 calc(100% - 1.9571rem) of 0.5rem cw,
+                close
+            );
+        }
+    }
+}
+
+/* SSP CARD SHELLS — geometry decoded from the Figma outline SVG (node
+   341:1827, asset "Outline", 1680x569): one path used by both cards (card 1 is
+   its 180° rotation, card 2 its vertical mirror). Corner radius 8px = 0.5rem,
+   chamfer cut and step height 24px = 1.5rem, step sharp corners at 50% - 1rem
+   and 50% + 0.5rem, every fillet radius 8px. Design px map to rem at /16 and
+   the fluid root scales like the Figma frame, so rem reproduces the design at
+   any width. Border = evenodd double path (outer outline + 1px inset copy);
+   the two concave step fillets sweep ccw and inset to 0.5rem + 1px while the
+   convex ones inset to 0.5rem - 1px. Stroke gradient taken from the SVG:
+   white 0.5 -> 0.2 at 46% -> 0.5, ~164deg. */
+
+.ssp__card.is--1 {
     position: relative;
-    clip-path: shape(from 0 0, line to calc(100% - 18px) 0, line to 100% 18px, line to 100% 100%, line to 18px 100%, line to 0 calc(100% - 18px), close);
-  }
 
-  .ssp__image-content.is--1::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.08);
-    clip-path: shape(evenodd from 0 0, line to calc(100% - 18px) 0, line to 100% 18px, line to 100% 100%, line to 18px 100%, line to 0 calc(100% - 18px), close, move to 1px 1px, line to calc(100% - 18px) 1px, line to calc(100% - 1px) 18px, line to calc(100% - 1px) calc(100% - 1px), line to 18px calc(100% - 1px), line to 1px calc(100% - 18px), close);
-    pointer-events: none;
-    z-index: 2;
-  }
+    /* Fallback for engines without clip-path: shape() (pre-2025) */
+    border: 1px solid rgb(255 255 255 / 0.35);
+    border-radius: 0.5rem;
 
-  .ssp__card.is--1 {
+    @supports (clip-path: shape(from 0 0, line to 100% 100%)) {
+        border: none;
+        border-radius: 0;
+
+        /* Chamfered top-left corner, step up at mid-top, shelf on the left */
+        clip-path: shape(
+            from 0 3.2071rem,
+            arc to 0.1464rem 2.8536rem of 0.5rem cw,
+            line to 1.3536rem 1.6464rem,
+            arc to 1.7071rem 1.5rem of 0.5rem cw,
+            line to calc(50% - 0.7071rem) 1.5rem,
+            arc to calc(50% - 0.3536rem) 1.3536rem of 0.5rem ccw,
+            line to calc(50% + 0.8536rem) 0.1464rem,
+            arc to calc(50% + 1.2071rem) 0 of 0.5rem cw,
+            line to calc(100% - 0.5rem) 0,
+            arc to 100% 0.5rem of 0.5rem cw,
+            line to 100% calc(100% - 0.5rem),
+            arc to calc(100% - 0.5rem) 100% of 0.5rem cw,
+            line to 0.5rem 100%,
+            arc to 0 calc(100% - 0.5rem) of 0.5rem cw,
+            close
+        );
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                164deg,
+                rgb(255 255 255 / 0.5),
+                rgb(255 255 255 / 0.2) 46%,
+                rgb(255 255 255 / 0.5)
+            );
+            clip-path: shape(
+                evenodd from 0 3.2071rem,
+                arc to 0.1464rem 2.8536rem of 0.5rem cw,
+                line to 1.3536rem 1.6464rem,
+                arc to 1.7071rem 1.5rem of 0.5rem cw,
+                line to calc(50% - 0.7071rem) 1.5rem,
+                arc to calc(50% - 0.3536rem) 1.3536rem of 0.5rem ccw,
+                line to calc(50% + 0.8536rem) 0.1464rem,
+                arc to calc(50% + 1.2071rem) 0 of 0.5rem cw,
+                line to calc(100% - 0.5rem) 0,
+                arc to 100% 0.5rem of 0.5rem cw,
+                line to 100% calc(100% - 0.5rem),
+                arc to calc(100% - 0.5rem) 100% of 0.5rem cw,
+                line to 0.5rem 100%,
+                arc to 0 calc(100% - 0.5rem) of 0.5rem cw,
+                close,
+                move to 1px 3.2071rem,
+                arc to calc(0.1464rem + 0.71px) calc(2.8536rem + 0.71px) of calc(0.5rem - 1px) cw,
+                line to calc(1.3536rem + 0.71px) calc(1.6464rem + 0.71px),
+                arc to 1.7071rem calc(1.5rem + 1px) of calc(0.5rem - 1px) cw,
+                line to calc(50% - 0.7071rem) calc(1.5rem + 1px),
+                arc to calc(50% - 0.3536rem + 0.71px) calc(1.3536rem + 0.71px) of calc(0.5rem + 1px) ccw,
+                line to calc(50% + 0.8536rem + 0.71px) calc(0.1464rem + 0.71px),
+                arc to calc(50% + 1.2071rem) 1px of calc(0.5rem - 1px) cw,
+                line to calc(100% - 0.5rem) 1px,
+                arc to calc(100% - 1px) 0.5rem of calc(0.5rem - 1px) cw,
+                line to calc(100% - 1px) calc(100% - 0.5rem),
+                arc to calc(100% - 0.5rem) calc(100% - 1px) of calc(0.5rem - 1px) cw,
+                line to 0.5rem calc(100% - 1px),
+                arc to 1px calc(100% - 0.5rem) of calc(0.5rem - 1px) cw,
+                close
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+    }
+}
+
+/* CARD 2 SETUP */
+
+.ssp__card.is--2 {
     position: relative;
-    clip-path: shape(from 0 52px, line to 27px 25px, line to calc(50% - 15px) 25px, line to calc(50% + 15px) 0, line to calc(100% - 8px) 0, arc to 100% 8px of 8px cw, line to 100% calc(100% - 8px), arc to calc(100% - 8px) 100% of 8px cw, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close);
-  }
 
-  .ssp__card.is--1::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.15);
-    clip-path: shape(evenodd from 0 52px, line to 27px 25px, line to calc(50% - 15px) 25px, line to calc(50% + 15px) 0, line to calc(100% - 8px) 0, arc to 100% 8px of 8px cw, line to 100% calc(100% - 8px), arc to calc(100% - 8px) 100% of 8px cw, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close, move to 1px 52px, line to 27px 26px, line to calc(50% - 15px) 26px, line to calc(50% + 15px) 1px, line to calc(100% - 8px) 1px, arc to calc(100% - 1px) 8px of 7px cw, line to calc(100% - 1px) calc(100% - 8px), arc to calc(100% - 8px) calc(100% - 1px) of 7px cw, line to 8px calc(100% - 1px), arc to 1px calc(100% - 8px) of 7px cw, close);
-    pointer-events: none;
-    z-index: 1;
-  }
+    /* Fallback for engines without clip-path: shape() (pre-2025) */
+    border: 1px solid rgb(255 255 255 / 0.35);
+    border-radius: 0.5rem;
 
-  /* CARD 2 SETUP */
+    @supports (clip-path: shape(from 0 0, line to 100% 100%)) {
+        border: none;
+        border-radius: 0;
 
-  .ssp__card.is--2 {
-    position: relative;
-    clip-path: shape(from 0 8px, arc to 8px 0 of 8px cw, line to calc(50% - 15px) 0, line to calc(50% + 15px) 25px, line to calc(100% - 27px) 25px, line to 100% 52px, line to 100% calc(100% - 8px), arc to calc(100% - 8px) 100% of 8px cw, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close);
-  }
+        /* Mirror of card 1: step down at mid-top, shelf on the right,
+           chamfered top-right corner */
+        clip-path: shape(
+            from 0 0.5rem,
+            arc to 0.5rem 0 of 0.5rem cw,
+            line to calc(50% - 1.2071rem) 0,
+            arc to calc(50% - 0.8536rem) 0.1464rem of 0.5rem cw,
+            line to calc(50% + 0.3536rem) 1.3536rem,
+            arc to calc(50% + 0.7071rem) 1.5rem of 0.5rem ccw,
+            line to calc(100% - 1.7071rem) 1.5rem,
+            arc to calc(100% - 1.3536rem) 1.6464rem of 0.5rem cw,
+            line to calc(100% - 0.1464rem) 2.8536rem,
+            arc to 100% 3.2071rem of 0.5rem cw,
+            line to 100% calc(100% - 0.5rem),
+            arc to calc(100% - 0.5rem) 100% of 0.5rem cw,
+            line to 0.5rem 100%,
+            arc to 0 calc(100% - 0.5rem) of 0.5rem cw,
+            close
+        );
 
-  .ssp__card.is--2::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.15);
-    clip-path: shape(evenodd from 0 8px, arc to 8px 0 of 8px cw, line to calc(50% - 15px) 0, line to calc(50% + 15px) 25px, line to calc(100% - 27px) 25px, line to 100% 52px, line to 100% calc(100% - 8px), arc to calc(100% - 8px) 100% of 8px cw, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close, move to 1px 8px, arc to 8px 1px of 7px cw, line to calc(50% - 15px) 1px, line to calc(50% + 15px) 26px, line to calc(100% - 27px) 26px, line to calc(100% - 1px) 52px, line to calc(100% - 1px) calc(100% - 8px), arc to calc(100% - 8px) calc(100% - 1px) of 7px cw, line to 8px calc(100% - 1px), arc to 1px calc(100% - 8px) of 7px cw, close);
-    pointer-events: none;
-    z-index: 1;
-  }
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                164deg,
+                rgb(255 255 255 / 0.5),
+                rgb(255 255 255 / 0.2) 46%,
+                rgb(255 255 255 / 0.5)
+            );
+            clip-path: shape(
+                evenodd from 0 0.5rem,
+                arc to 0.5rem 0 of 0.5rem cw,
+                line to calc(50% - 1.2071rem) 0,
+                arc to calc(50% - 0.8536rem) 0.1464rem of 0.5rem cw,
+                line to calc(50% + 0.3536rem) 1.3536rem,
+                arc to calc(50% + 0.7071rem) 1.5rem of 0.5rem ccw,
+                line to calc(100% - 1.7071rem) 1.5rem,
+                arc to calc(100% - 1.3536rem) 1.6464rem of 0.5rem cw,
+                line to calc(100% - 0.1464rem) 2.8536rem,
+                arc to 100% 3.2071rem of 0.5rem cw,
+                line to 100% calc(100% - 0.5rem),
+                arc to calc(100% - 0.5rem) 100% of 0.5rem cw,
+                line to 0.5rem 100%,
+                arc to 0 calc(100% - 0.5rem) of 0.5rem cw,
+                close,
+                move to 1px 0.5rem,
+                arc to 0.5rem 1px of calc(0.5rem - 1px) cw,
+                line to calc(50% - 1.2071rem) 1px,
+                arc to calc(50% - 0.8536rem - 0.71px) calc(0.1464rem + 0.71px) of calc(0.5rem - 1px) cw,
+                line to calc(50% + 0.3536rem - 0.71px) calc(1.3536rem + 0.71px),
+                arc to calc(50% + 0.7071rem) calc(1.5rem + 1px) of calc(0.5rem + 1px) ccw,
+                line to calc(100% - 1.7071rem) calc(1.5rem + 1px),
+                arc to calc(100% - 1.3536rem - 0.71px) calc(1.6464rem + 0.71px) of calc(0.5rem - 1px) cw,
+                line to calc(100% - 0.1464rem - 0.71px) calc(2.8536rem + 0.71px),
+                arc to calc(100% - 1px) 3.2071rem of calc(0.5rem - 1px) cw,
+                line to calc(100% - 1px) calc(100% - 0.5rem),
+                arc to calc(100% - 0.5rem) calc(100% - 1px) of calc(0.5rem - 1px) cw,
+                line to 0.5rem calc(100% - 1px),
+                arc to 1px calc(100% - 0.5rem) of calc(0.5rem - 1px) cw,
+                close
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+    }
+}
 
-  .ssp__card-wrap.is--2 .ssp__card-bg {
+.ssp__card-wrap.is--2 .ssp__card-bg {
     position: absolute;
     inset: 0;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    /* stesso clip-path della card */
-    clip-path: shape(from 0 8px, arc to 8px 0 of 8px cw, line to calc(50% - 15px) 0, line to calc(50% + 15px) 25px, line to calc(100% - 27px) 25px, line to 100% 52px, line to 100% calc(100% - 8px), arc to calc(100% - 8px) 100% of 8px cw, line to 8px 100%, arc to 0 calc(100% - 8px) of 8px cw, close);
+    /* same clip-path as .ssp__card.is--2 */
+    clip-path: shape(
+        from 0 0.5rem,
+        arc to 0.5rem 0 of 0.5rem cw,
+        line to calc(50% - 1.2071rem) 0,
+        arc to calc(50% - 0.8536rem) 0.1464rem of 0.5rem cw,
+        line to calc(50% + 0.3536rem) 1.3536rem,
+        arc to calc(50% + 0.7071rem) 1.5rem of 0.5rem ccw,
+        line to calc(100% - 1.7071rem) 1.5rem,
+        arc to calc(100% - 1.3536rem) 1.6464rem of 0.5rem cw,
+        line to calc(100% - 0.1464rem) 2.8536rem,
+        arc to 100% 3.2071rem of 0.5rem cw,
+        line to 100% calc(100% - 0.5rem),
+        arc to calc(100% - 0.5rem) 100% of 0.5rem cw,
+        line to 0.5rem 100%,
+        arc to 0 calc(100% - 0.5rem) of 0.5rem cw,
+        close
+    );
     z-index: 0;
-  }
+}
 
-  .ssp__image-content.is--2 {
+/* PRODUCT ECOSYSTEM SETUP */
+
+/* DARK CARD — chamfered border ring (Figma 340:679). Same construction as the
+   home accordion ring (modules/accordion.scss): evenodd double path = outer
+   chamfered outline + the same outline inset by the stroke width; the fill
+   between them is the border. Chamfers sit on the top-right and bottom-left
+   corners here, blend arcs and rounded corners share --radius. */
+
+.card.is--dark {
+    /* Tune these four knobs (keep --radius >= --stroke-w and <= --chamfer): */
+    --stroke: rgb(255 255 255 / 0.15); /* border colour */
+    --stroke-w: 1px; /* border thickness */
+    --radius: 0.5rem; /* corner radius (all corners + chamfer blend arcs) */
+    --chamfer: 1.75rem; /* diagonal cut size, measured from the corner along each edge */
+
+    /* Derived geometry — do not tune (same math as modules/accordion.scss) */
+    --_k: calc(var(--radius) * 0.2929); /* R * (1 - 1/sqrt2) */
+    --_t: calc(var(--chamfer) + var(--radius) * 0.4142); /* chamfer + R * (sqrt2 - 1) */
+    --_c: calc(var(--chamfer) - var(--_k));
+    --_dw: calc(var(--stroke-w) * 0.7071); /* w / sqrt2 */
+    --_ri: calc(var(--radius) - var(--stroke-w)); /* inner ring corner radius */
+
     position: relative;
-    clip-path: shape(from 25px 0, line to 100% 0, line to 100% calc(100% - 23px), line to calc(100% - 24px) 100%, line to 0 100%, line to 0 28px, close);
-  }
 
-  .ssp__image-content.is--2::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.08);
-    clip-path: shape(evenodd from 25px 0, line to 100% 0, line to 100% calc(100% - 23px), line to calc(100% - 24px) 100%, line to 0 100%, line to 0 28px, close, move to 25px 1px, line to calc(100% - 1px) 1px, line to calc(100% - 1px) calc(100% - 23px), line to calc(100% - 24px) calc(100% - 1px), line to 1px calc(100% - 1px), line to 1px 28px, close);
-    pointer-events: none;
-    z-index: 2;
-  }
+    /* Fallback for engines without clip-path: shape() (pre-2025): a plain
+       rounded hairline, no chamfer. */
+    border: var(--stroke-w) solid var(--stroke);
+    border-radius: var(--radius);
 
-  /* PRODUCT ECOSYSTEM SETUP */
+    @supports (clip-path: shape(from 0 0, line to 100% 100%)) {
+        border: none;
+        border-radius: 0;
 
-  .svg__image-content {
-    position: relative;
-    clip-path: shape(from 0 3.724%, line to 3.294% 0, line to 96.706% 0, line to 100% 3.709%, line to 100% 96.291%, line to 96.729% 100%, line to 3.271% 100%, line to 0 96.276%, close);
-  }
+        /* Clips the card's own content to the chamfered outline */
+        clip-path: shape(
+            from 0 var(--radius),
+            arc to var(--radius) 0 of var(--radius) cw,
+            line to calc(100% - var(--_t)) 0,
+            arc to calc(100% - var(--_c)) var(--_k) of var(--radius) cw,
+            line to calc(100% - var(--_k)) var(--_c),
+            arc to 100% var(--_t) of var(--radius) cw,
+            line to 100% calc(100% - var(--radius)),
+            arc to calc(100% - var(--radius)) 100% of var(--radius) cw,
+            line to var(--_t) 100%,
+            arc to var(--_c) calc(100% - var(--_k)) of var(--radius) cw,
+            line to var(--_k) calc(100% - var(--_c)),
+            arc to 0 calc(100% - var(--_t)) of var(--radius) cw,
+            close
+        );
 
-  .svg__image-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.1);
-    clip-path: shape(evenodd from 0 3.724%, line to 3.294% 0, line to 96.706% 0, line to 100% 3.709%, line to 100% 96.291%, line to 96.729% 100%, line to 3.271% 100%, line to 0 96.276%, close, move to 1px 3.724%, line to 3.294% 1px, line to 96.706% 1px, line to calc(100% - 1px) 3.709%, line to calc(100% - 1px) 96.291%, line to 96.729% calc(100% - 1px), line to 3.271% calc(100% - 1px), line to 1px 96.276%, close);
-    pointer-events: none;
-    z-index: 1;
-  }
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background: var(--stroke);
+            clip-path: shape(
+                evenodd from 0 var(--radius),
+                arc to var(--radius) 0 of var(--radius) cw,
+                line to calc(100% - var(--_t)) 0,
+                arc to calc(100% - var(--_c)) var(--_k) of var(--radius) cw,
+                line to calc(100% - var(--_k)) var(--_c),
+                arc to 100% var(--_t) of var(--radius) cw,
+                line to 100% calc(100% - var(--radius)),
+                arc to calc(100% - var(--radius)) 100% of var(--radius) cw,
+                line to var(--_t) 100%,
+                arc to var(--_c) calc(100% - var(--_k)) of var(--radius) cw,
+                line to var(--_k) calc(100% - var(--_c)),
+                arc to 0 calc(100% - var(--_t)) of var(--radius) cw,
+                close,
+                move to var(--stroke-w) var(--radius),
+                arc to var(--radius) var(--stroke-w) of var(--_ri) cw,
+                line to calc(100% - var(--_t)) var(--stroke-w),
+                arc to calc(100% - var(--_c) - var(--_dw)) calc(var(--_k) + var(--_dw)) of var(--_ri) cw,
+                line to calc(100% - var(--_k) - var(--_dw)) calc(var(--_c) + var(--_dw)),
+                arc to calc(100% - var(--stroke-w)) var(--_t) of var(--_ri) cw,
+                line to calc(100% - var(--stroke-w)) calc(100% - var(--radius)),
+                arc to calc(100% - var(--radius)) calc(100% - var(--stroke-w)) of var(--_ri) cw,
+                line to var(--_t) calc(100% - var(--stroke-w)),
+                arc to calc(var(--_c) + var(--_dw)) calc(100% - var(--_k) - var(--_dw)) of var(--_ri) cw,
+                line to calc(var(--_k) + var(--_dw)) calc(100% - var(--_c) - var(--_dw)),
+                arc to var(--stroke-w) calc(100% - var(--_t)) of var(--_ri) cw,
+                close
+            );
+        }
+    }
+}
 
-  .card.is--dark {
-    position: relative;
-    clip-path: shape(from 0 0, line to 95.615% 0, line to 100% 3.904%, line to 100% 100%, line to 4.385% 100%, line to 0 96.096%, close);
-  }
-
-  .card.is--dark::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.15);
-    clip-path: shape(evenodd from 0 0, line to 95.615% 0, line to 100% 3.904%, line to 100% 100%, line to 4.385% 100%, line to 0 96.096%, close, move to 1px 1px, line to 95.615% 1px, line to calc(100% - 1px) 3.904%, line to calc(100% - 1px) calc(100% - 1px), line to 4.385% calc(100% - 1px), line to 1px 96.096%, close);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  [data-color='green'] {
+[data-color='green'] {
     color: #00a795;
-  }
+}
 
 /* Desktop only (≥992px) */
 @media (min-width: 992px) {
-  [data-hide~='d'] {
-    display: none;
-  }
+    [data-hide~='d'] {
+        display: none;
+    }
 }
 
 /* Tablet (768px – 991px) */
 @media (min-width: 768px) and (max-width: 991px) {
-  [data-hide~='t'] {
-    display: none;
-  }
+    [data-hide~='t'] {
+        display: none;
+    }
 }
 
 /* Mobile (≤767px) */
 @media (max-width: 767px) {
-  [data-hide~='ml'] {
-    display: none;
-  }
+    [data-hide~='ml'] {
+        display: none;
+    }
+}
+
+.spe__t-bottom {
+    strong {
+        color: black;
+        font-weight: 500;
+        padding-bottom: 0.25rem;
+    }
 }
