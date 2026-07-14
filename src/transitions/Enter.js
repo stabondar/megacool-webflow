@@ -31,6 +31,16 @@ export default class Enter
 
         this.app.loaderActive = true
 
+        this.nav = document.querySelector('.nav')
+        if (this.container.hasAttribute('data-nav-black'))
+        {
+            this.nav.classList.add('black')
+        }
+        else
+        {
+            this.nav.classList.remove('black')
+        }
+
         this.finished = this.run()
     }
 

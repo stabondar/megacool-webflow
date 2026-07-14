@@ -10,6 +10,16 @@ export default class GlobalLoader
 
         this.loader = document.querySelector('.loader')
 
+        this.nav = document.querySelector('.nav')
+        if (this.main.hasAttribute('data-nav-black'))
+        {
+            this.nav.classList.add('black')
+        }
+        else
+        {
+            this.nav.classList.remove('black')
+        }
+
         this.app.loaderActive = true
 
         this.load()

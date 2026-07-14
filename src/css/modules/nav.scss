@@ -1,5 +1,29 @@
-.toggle-switch__btn.w--current {
-    text-decoration: none;
+.n__logo {
+    transition: color ease 0.4s;
+}
+
+.nav.black {
+    .n__logo {
+        color: var(--_colors---black);
+    }
+
+    .toggle-switch__btn {
+        color: var(--_colors---black);
+    }
+}
+
+.toggle-switch__btn {
+    &.w--current {
+        text-decoration: none;
+    }
+
+    transition: color ease 0.4s;
+    color: var(--_colors---white);
+
+    &:hover,
+    &.w--current {
+        color: var(--_colors---black) !important;
+    }
 }
 
 .bold-nav-full__hamburger .bold-nav-full__hamburger-bar {
