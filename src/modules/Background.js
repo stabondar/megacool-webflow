@@ -74,6 +74,7 @@ export default class Background
         this.introAnimating = false
         this.scrollProgress = 0
         this.startTime = 0
+        this.transitionFrame = null
 
         this.onMouseMove = this.onMouseMove.bind(this)
 
@@ -84,6 +85,7 @@ export default class Background
 
         this.init()
         this.app.on(`resize.${this.ns}`, () => this.resize())
+        this.app.on(`transitionSettled.${this.ns}`, () => this.refreshVisibility())
         this.app.on(`destroy.${this.ns}`, () => this.destroy())
     }
 
@@ -272,6 +274,38 @@ export default class Background
         this.post.render()
 
         this.needsRender = shardsAnimating || this.introAnimating || this.shards.continuous
+    }
+
+    refreshVisibility()
+    {
+        if (this.destroyed || !this.renderer) return
+
+        if (this.transitionFrame !== null) cancelAnimationFrame(this.transitionFrame)
+
+        // The incoming Barba container is fixed while the pixel transition runs.
+        // Re-check on the next frame, after Enter has restored normal document flow.
+        this.transitionFrame = requestAnimationFrame(() =>
+        {
+            this.transitionFrame = null
+            if (this.destroyed || !this.renderer) return
+
+            this.visibilityObserver?.disconnect()
+            this.visibilityObserver?.observe(this.instance)
+
+            const rect = this.instance.getBoundingClientRect()
+            const viewportWidth = document.documentElement.clientWidth || window.innerWidth
+            const viewportHeight = document.documentElement.clientHeight || window.innerHeight
+
+            this.inView = rect.bottom > 0 && rect.right > 0 && rect.top < viewportHeight && rect.left < viewportWidth
+            if (!this.inView) return
+
+            const size = this.getSize()
+            if (size.width !== this.width || size.height !== this.height) this.resize()
+
+            this.scrollProgress = this.scrollTrigger?.progress ?? this.scrollProgress
+            this.needsRender = true
+            this.onTick()
+        })
     }
 
     resize()
@@ -793,6 +827,13 @@ export default class Background
 
         this.app.off(`tick.${this.ns}`)
         this.app.off(`resize.${this.ns}`)
+        this.app.off(`transitionSettled.${this.ns}`)
+
+        if (this.transitionFrame !== null)
+        {
+            cancelAnimationFrame(this.transitionFrame)
+            this.transitionFrame = null
+        }
 
         if (!this.renderer) return
 

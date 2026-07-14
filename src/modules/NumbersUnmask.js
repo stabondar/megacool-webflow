@@ -117,8 +117,8 @@ export default class NumbersUnmask
 
         const st = ScrollTrigger.create({
             trigger: item,
-            start: () => `top ${cfgTop}`,
-            end: () => `bottom ${cfgBottom}`,
+            start: () => `top ${cfgTop}+=10%`,
+            end: () => `bottom ${cfgBottom}+=45%`,
             onUpdate: update,
             onRefresh: update,
         })

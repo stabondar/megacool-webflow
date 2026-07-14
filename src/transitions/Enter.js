@@ -91,7 +91,7 @@ export default class Enter
         this.app.scroll.init()
         this.app.scroll.lenis.stop()
 
-        this.app.moduleLoader.loadModules(this.container)
+        await this.app.moduleLoader.loadModules(this.container)
 
         // Instantiate the page class and run its load — transitions get the
         // same per-page setup as the first load
@@ -169,5 +169,6 @@ export default class Enter
 
         this.app.scroll.lenis.start()
         ScrollTrigger.refresh()
+        this.app.trigger('transitionSettled')
     }
 }
