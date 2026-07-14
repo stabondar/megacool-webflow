@@ -135,3 +135,33 @@
         }
     }
 }
+
+@media screen and (min-width: 992px) {
+    .partner-track.is--about {
+        .partner-sticky {
+            height: calc(100vh - var(--_spacing---80) * 2);
+        }
+
+        ._w-grid {
+            height: 100%;
+        }
+
+        .sp__p {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .acc-list {
+            height: 100%;
+        }
+
+        .accordion {
+            border-bottom: none;
+        }
+
+        .acc-list {
+            border-bottom: 1px dashed #ffffff26;
+        }
+    }
+}
