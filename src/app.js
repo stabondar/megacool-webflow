@@ -67,6 +67,16 @@ export default class app extends EventEmitter
             ],
         })
 
+        // Collapse the mobile nav the moment a transition starts — tapping a
+        // menu link should close the fullscreen tile as the new page wipes in.
+        // Guarded by isOpen() so it only runs (and touches lenis) when the menu
+        // is actually open; this.navigation is undefined during the once load,
+        // hence the optional chain.
+        barba.hooks.before(() =>
+        {
+            if (this.navigation?.isOpen()) this.navigation.close()
+        })
+
         barba.hooks.enter((data) =>
         {
             const videos = data.next.container.querySelectorAll('video')
