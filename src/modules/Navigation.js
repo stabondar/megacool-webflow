@@ -4,7 +4,7 @@ const NOT_ACTIVE = 'not-active'
 
 export default class Navigation
 {
-    constructor(instance, app, main)
+    constructor(instance, app, main, isNav)
     {
         this.instance = instance
         this.app = app
@@ -13,6 +13,13 @@ export default class Navigation
         this.destroyed = false
 
         this.init()
+
+        // The nav lives outside the Barba container, so it is instantiated
+        // once and must persist across every transition. isNav skips the app
+        // resize/destroy bindings — otherwise the transition teardown would
+        // snapshot this listener, call destroy(), and detach the toggle after
+        // the first navigation. Mirrors TextHover's isNav flag.
+        if (isNav) return
         this.app.on('resize', () => this.resize())
         this.app.on('destroy', () => this.destroy())
     }
@@ -57,8 +64,8 @@ export default class Navigation
     {
         this.instance.setAttribute(STATUS_ATTR, status)
 
-        if (status === ACTIVE) this.app.scroll.lenis.stop()
-        else this.app.scroll.lenis.start()
+        if (status === ACTIVE) this.app.scroll.lenis?.stop()
+        else this.app.scroll.lenis?.start()
     }
 
     open()

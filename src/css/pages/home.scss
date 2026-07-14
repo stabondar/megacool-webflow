@@ -1,0 +1,41 @@
+[data-home-icon='1'] {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 472 / 415;
+    --home-icon-blur: 32px;
+}
+
+[data-home-icon-glass] {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(225, 229, 228, 0.01);
+    backdrop-filter: blur(var(--home-icon-blur));
+    -webkit-backdrop-filter: blur(var(--home-icon-blur));
+    mask-image: url('/images/home-icon-1-blur-mask.svg');
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: 100% 100%;
+    -webkit-mask-image: url('/images/home-icon-1-blur-mask.svg');
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    pointer-events: none;
+}
+
+[data-home-icon-art] {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    [data-home-icon-glass] {
+        background: rgba(0, 50, 54, 0.14);
+    }
+}

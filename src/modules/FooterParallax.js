@@ -2,8 +2,10 @@ import gsap from 'gsap'
 
 import { clamp, map } from '@utils/Math.js'
 
+const ACTIVE_QUERY = '(min-width: 992px) and (prefers-reduced-motion: no-preference)'
+
 /**
- * Scroll-scrubbed footer parallax. data-module="footer-parallax" on the wrapper.
+ * Desktop-only scroll-scrubbed footer parallax. data-module="footer-parallax" on the wrapper.
  * Children: [data-footer-parallax-inner] slides up from yPercent -25,
  * [data-footer-parallax-dark] fades in from opacity 0.5.
  *
@@ -36,25 +38,42 @@ export default class FooterParallax
 
         if (!this.inner && !this.dark) return
 
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
         this.lastProgress = -1
         this.started = false
 
         // bind once so lenis.off() can remove the exact same reference
         this.onScroll = this.render.bind(this)
 
-        this.start()
+        this.media = gsap.matchMedia()
+        this.media.add(ACTIVE_QUERY, () =>
+        {
+            this.start()
+            return () => this.stop()
+        })
     }
 
     start()
     {
-        if (this.started) return
+        if (this.destroyed || this.started) return
         this.started = true
 
         this.render()
         this.subscribedLenis = this.app.scroll.lenis
         this.subscribedLenis.on('scroll', this.onScroll)
+    }
+
+    stop()
+    {
+        if (!this.started) return
+
+        this.subscribedLenis?.off('scroll', this.onScroll)
+        this.subscribedLenis = null
+        this.started = false
+
+        if (this.inner) gsap.set(this.inner, { clearProps: 'transform' })
+        if (this.dark) gsap.set(this.dark, { clearProps: 'opacity' })
+
+        this.lastProgress = -1
     }
 
     render()
@@ -87,15 +106,8 @@ export default class FooterParallax
         if (this.destroyed) return
         this.destroyed = true
 
-        if (!this.started) return
-
-        // off() the instance we subscribed to — by deferred-destroy time,
-        // app.scroll.lenis is already the NEXT page's Lenis
-        this.subscribedLenis?.off('scroll', this.onScroll)
-
-        if (this.inner) gsap.set(this.inner, { clearProps: 'transform' })
-        if (this.dark) gsap.set(this.dark, { clearProps: 'opacity' })
-
-        this.lastProgress = -1
+        this.media?.revert()
+        this.media = null
+        this.stop()
     }
 }

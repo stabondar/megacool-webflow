@@ -85,13 +85,14 @@ export default class app extends EventEmitter
             onceLoaded: false,
         }
 
-        const [Scroll, Sizes, Time, ModuleLoader, Observer, Nav] = await Promise.all([
+        const [Scroll, Sizes, Time, ModuleLoader, Observer, Nav, Navigation] = await Promise.all([
             import('@utils/Scroll.js'),
             import('@utils/Sizes.js'),
             import('@utils/Tick.js'),
             import('@utils/ModuleLoader.js'),
             import('@utils/Observer.js'),
             import('@utils/Nav.js'),
+            import('@modules/Navigation.js'),
         ])
 
         app.scroll = new Scroll.default()
@@ -106,7 +107,15 @@ export default class app extends EventEmitter
         app.sizes.on('resize', () => app.trigger('resize'))
         app.tick.on('tick', () => app.trigger('tick'))
 
-        app.nav = new Nav.default(document.querySelector('.nav__wrap', app, main))
+        app.nav = new Nav.default(document.querySelector('.nav__wrap'), app, main)
+
+        // The nav sits outside the Barba container, so the container-scoped
+        // module loader never picks up its data-module="navigation". Wire the
+        // toggle here, once, as a persistent module (isNav = true keeps it out
+        // of the transition teardown so the hamburger keeps working after page
+        // changes).
+        const navToggle = document.querySelector('[data-module="navigation"]')
+        if (navToggle) app.navigation = new Navigation.default(navToggle, app, main, true)
     }
 
     async onceLoad(next)

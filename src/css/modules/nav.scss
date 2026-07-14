@@ -1,0 +1,144 @@
+.toggle-switch__btn.w--current {
+    text-decoration: none;
+}
+
+.bold-nav-full__hamburger .bold-nav-full__hamburger-bar {
+    transform: translate(0, 0) rotate(0.001deg);
+    transition: transform 0.5s cubic-bezier(0.7, 0, 0.3, 1);
+}
+
+.bold-nav-full__hamburger .bold-nav-full__hamburger-bar:nth-child(1) {
+    transform: translate(0, -0.45em) scale(1, 1) rotate(0.001deg);
+}
+
+.bold-nav-full__hamburger .bold-nav-full__hamburger-bar:nth-child(3) {
+    transform: translate(0, 0.45em) scale(1, 1) rotate(0.001deg);
+}
+
+/* Hamburger - Hover */
+.bold-nav-full__hamburger:hover .bold-nav-full__hamburger-bar:nth-child(1) {
+    transform: translate(0, -0.45em) scale(0.5, 1) rotate(0.001deg);
+}
+
+.bold-nav-full__hamburger:hover .bold-nav-full__hamburger-bar:nth-child(3) {
+    transform: translate(0, 0.45em) scale(0.5, 1) rotate(0.001deg);
+}
+
+/* Hamburger (Navigation Open) */
+
+[data-navigation-status='active'] .bold-nav-full__hamburger-bar:nth-child(1) {
+    transform: translate(0, 0) rotate(45deg) scale(1, 1);
+}
+
+[data-navigation-status='active'] .bold-nav-full__hamburger-bar:nth-child(2) {
+    transform: translate(-150%, 0) rotate(0.001deg) scale(1, 1);
+}
+
+[data-navigation-status='active'] .bold-nav-full__hamburger-bar:nth-child(3) {
+    transform: translate(0, 0) rotate(-45deg) scale(1, 1);
+}
+
+/*  Hamburger - Hover (Navigation Open)  */
+
+[data-navigation-status='active'] .bold-nav-full__hamburger:hover .bold-nav-full__hamburger-bar:nth-child(1) {
+    transform: translate(0, 0) rotate(45deg) scale(0.7, 1);
+}
+
+[data-navigation-status='active'] .bold-nav-full__hamburger:hover .bold-nav-full__hamburger-bar:nth-child(3) {
+    transform: translate(0, 0) rotate(-45deg) scale(0.7, 1);
+}
+
+/* --------------------------------- Tile --------------------------------- */
+
+.bold-nav-full__tile {
+    transition: clip-path 1s cubic-bezier(0.9, 0, 0.1, 1);
+    clip-path: polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%);
+}
+
+/* Tile (Navigation Open) */
+
+[data-navigation-status='active'] .bold-nav-full__tile {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+/* Tile - Links */
+
+.bold-nav-full__link {
+    transform: translateY(100%) rotate(5deg);
+    transition: transform 0.75s cubic-bezier(0.7, 0, 0.3, 1);
+}
+
+.bold-nav-full__li:nth-child(1) .bold-nav-full__link {
+    transition-delay: 0.2s;
+}
+.bold-nav-full__li:nth-child(2) .bold-nav-full__link {
+    transition-delay: 0.15s;
+}
+.bold-nav-full__li:nth-child(3) .bold-nav-full__link {
+    transition-delay: 0.1s;
+}
+.bold-nav-full__li:nth-child(4) .bold-nav-full__link {
+    transition-delay: 0.05s;
+}
+.bold-nav-full__li:nth-child(5) .bold-nav-full__link {
+    transition-delay: 0s;
+}
+
+/* Tile - Links (Navigation Open) */
+
+[data-navigation-status='active'] .bold-nav-full__link {
+    transform: translateY(0%) rotate(0.001deg);
+    transition-delay: 0.3s;
+}
+
+[data-navigation-status='active'] .bold-nav-full__li:nth-child(1) .bold-nav-full__link {
+    transition-delay: 0.3s;
+}
+[data-navigation-status='active'] .bold-nav-full__li:nth-child(2) .bold-nav-full__link {
+    transition-delay: 0.35s;
+}
+[data-navigation-status='active'] .bold-nav-full__li:nth-child(3) .bold-nav-full__link {
+    transition-delay: 0.4s;
+}
+[data-navigation-status='active'] .bold-nav-full__li:nth-child(4) .bold-nav-full__link {
+    transition-delay: 0.45s;
+}
+[data-navigation-status='active'] .bold-nav-full__li:nth-child(5) .bold-nav-full__link {
+    transition-delay: 0.5s;
+}
+
+@media (min-width: 992px) {
+    /* Tile - Links (Hover) */
+
+    .bold-nav-full__li {
+        transition: opacity 0.5s cubic-bezier(0.7, 0, 0.3, 1);
+    }
+
+    .bold-nav-full__ul:has(.bold-nav-full__li:hover) .bold-nav-full__li {
+        opacity: 0.15;
+    }
+
+    .bold-nav-full__ul:has(.bold-nav-full__li:hover) .bold-nav-full__li:hover {
+        opacity: 1;
+    }
+
+    /* Tile - Links (Hover) */
+
+    .bold-nav-full__link .bold-nav-full__link-text {
+        transition: transform 0.5s cubic-bezier(0.7, 0, 0.3, 1);
+        transform: translateY(0%) rotate(0.001deg);
+    }
+
+    .bold-nav-full__link:hover .bold-nav-full__link-text {
+        transform: translateY(-100%) rotate(0.001deg);
+    }
+}
+
+
+<svg width="7" height="167" viewBox="0 0 7 167" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0.833984 -0.000247002V131.416C0.833984 149.6 2.50065 161.171 5.83398 166.13" stroke="#090909" stroke-opacity="0.4" stroke-width="1.66747"/>
+</svg>
+
+<svg width="7" height="137" viewBox="0 0 7 137" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1 -0.000240088V107.685C1 122.585 2.66667 132.066 6 136.13" stroke="#00A795" stroke-width="2"/>
+</svg>
