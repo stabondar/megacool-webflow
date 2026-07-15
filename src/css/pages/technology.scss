@@ -18,6 +18,8 @@
     }
 
     &.is--1 {
+        padding-left: var(--_spacing---24);
+
         .ssp__col.is-img {
             clip-path: shape(
                 from 0 1.9571rem,
@@ -38,6 +40,7 @@
     }
 
     &.is--2 {
+        padding-right: var(--_spacing---24);
         .ssp__col.is-img {
             clip-path: shape(
                 from 0 0,
@@ -57,17 +60,6 @@
         }
     }
 }
-
-/* SSP CARD SHELLS — geometry decoded from the Figma outline SVG (node
-   341:1827, asset "Outline", 1680x569): one path used by both cards (card 1 is
-   its 180° rotation, card 2 its vertical mirror). Corner radius 8px = 0.5rem,
-   chamfer cut and step height 24px = 1.5rem, step sharp corners at 50% - 1rem
-   and 50% + 0.5rem, every fillet radius 8px. Design px map to rem at /16 and
-   the fluid root scales like the Figma frame, so rem reproduces the design at
-   any width. Border = evenodd double path (outer outline + 1px inset copy);
-   the two concave step fillets sweep ccw and inset to 0.5rem + 1px while the
-   convex ones inset to 0.5rem - 1px. Stroke gradient taken from the SVG:
-   white 0.5 -> 0.2 at 46% -> 0.5, ~164deg. */
 
 .ssp__card.is--1 {
     position: relative;
@@ -252,6 +244,10 @@
         close
     );
     z-index: 0;
+}
+
+.ssp__image-content {
+    background-color: color-mix(in srgb, var(--_colors---white) 5%, transparent);
 }
 
 /* PRODUCT ECOSYSTEM SETUP */

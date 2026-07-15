@@ -1,0 +1,72 @@
+/* PRE-FOOTER — clip-only mask (no border), same outline family and knobs as
+   the heroes in hero-sections.scss. Units are rem on purpose: the site's
+   fluid root is 16px * (viewport / design-frame) per breakpoint, so rem
+   reproduces design px at every width. Desktop: straight top, stepped
+   chamfer bottom (left half raised --step, step down at --step-x, chamfer
+   cuts at both bottom corners, --soft blend arcs); the clip bleeds --bleed
+   past the left/right edges (like the original exported polygon) so only the
+   bottom contour actually clips — set --bleed: 0% to clip the sides too.
+   Tablet + mobile get the Figma mobile variant (the 375x3257 section mask in
+   node 782:225 — same bottom contour as the mobile hero mask). Engines
+   without shape() simply skip the clip. */
+
+.pre-footer {
+    /* Tune these knobs (keep --soft <= --chamfer): */
+    --soft: 0.5rem; /* blend/fillet radius */
+    --chamfer: 1.75rem; /* corner cut, from the corner along each edge — matches .corner-frame */
+    --step: 1.75rem; /* step height — the left shelf sits this far above the bottom */
+    --step-x: calc(50% - 1rem); /* x of the step's shelf-side sharp corner */
+    --bleed: 2%; /* horizontal overhang above the bottom contour */
+
+    /* Derived — do not tune (same math as .corner-frame) */
+    --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+    --_k: calc(var(--soft) * 0.2929);
+    --_c: calc(var(--chamfer) - var(--_k));
+    --_a: calc(var(--soft) * 0.4142); /* tangent offset from a sharp step corner */
+
+    clip-path: shape(
+        from calc(0% - var(--bleed)) 0,
+        line to calc(100% + var(--bleed)) 0,
+        line to calc(100% + var(--bleed)) calc(100% - var(--_t)),
+        line to 100% calc(100% - var(--_t)),
+        arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--soft) cw,
+        line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+        arc to calc(100% - var(--_t)) 100% of var(--soft) cw,
+        line to calc(var(--step-x) + var(--step) + var(--_a)) 100%,
+        arc to calc(var(--step-x) + var(--step) - var(--_k)) calc(100% - var(--_k)) of var(--soft) cw,
+        line to calc(var(--step-x) + var(--_k)) calc(100% - var(--step) + var(--_k)),
+        arc to calc(var(--step-x) - var(--_a)) calc(100% - var(--step)) of var(--soft) ccw,
+        line to var(--_t) calc(100% - var(--step)),
+        arc to var(--_c) calc(100% - var(--step) - var(--_k)) of var(--soft) cw,
+        line to var(--_k) calc(100% - var(--step) - var(--_c)),
+        arc to 0 calc(100% - var(--step) - var(--_t)) of var(--soft) cw,
+        line to calc(0% - var(--bleed)) calc(100% - var(--step) - var(--_t)),
+        close
+    );
+
+    /* Tablet + mobile (<= 991px) — the Figma mobile variant: no chamfer
+       cuts (plain rounded corners), step MIRRORED — the right half is the
+       raised shelf, the left half runs to the full bottom. Same values as
+       the mobile hero mask (frame px / 16); sides clip at the box edges,
+       matching the Figma mask. */
+    @media (max-width: 991px) {
+        --m-soft: 0.5rem; /* corner radius + step fillet radius (8px in frame) */
+        --m-step: 1.5rem; /* shelf raise on the right half (24px in frame) */
+        --m-x: calc(50% + 1.0938rem); /* x of the step's shelf-side sharp corner */
+
+        clip-path: shape(
+            from 0 0,
+            line to 100% 0,
+            line to 100% calc(100% - var(--m-step) - var(--m-soft)),
+            arc to calc(100% - var(--m-soft)) calc(100% - var(--m-step)) of var(--m-soft) cw,
+            line to calc(var(--m-x) + var(--m-soft) * 0.4142) calc(100% - var(--m-step)),
+            arc to calc(var(--m-x) - var(--m-soft) * 0.2929) calc(100% - var(--m-step) + var(--m-soft) * 0.2929) of
+                var(--m-soft) ccw,
+            line to calc(var(--m-x) - var(--m-step) + var(--m-soft) * 0.2929) calc(100% - var(--m-soft) * 0.2929),
+            arc to calc(var(--m-x) - var(--m-step) - var(--m-soft) * 0.4142) 100% of var(--m-soft) cw,
+            line to var(--m-soft) 100%,
+            arc to 0 calc(100% - var(--m-soft)) of var(--m-soft) cw,
+            close
+        );
+    }
+}

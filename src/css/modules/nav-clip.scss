@@ -1,0 +1,79 @@
+/* NAV TOGGLE — clip-only masks, same outline family and knob math as
+   .corner-frame. The wrapper is chamfered top-left and bottom-right with
+   rounded top-right / bottom-left corners; the first (.is--home) and last
+   (.is--contact) buttons echo the adjacent cut. The buttons sit inside the
+   wrapper's --pad padding, so their shapes are derived CONCENTRIC to the
+   wrapper's: radii shrink by --pad, and a 45° chamfer offset inward by p
+   shrinks its cut by p * (2 - sqrt2) = 0.5858p. Keep --pad equal to the
+   wrapper's real padding. Engines without shape() simply skip the clips. */
+
+.toggle-switch {
+    /* Tune these knobs (keep --soft <= --chamfer): */
+    --soft: 0.5rem; /* blend/fillet radius on the chamfers */
+    --chamfer: 1.25rem; /* diagonal cut, from the corner along each edge */
+    --radius: 0.625rem; /* rounded corner radius */
+    --pad: 0.25rem; /* the wrapper's own padding — buttons inset by this */
+
+    /* Derived — do not tune (same math as .corner-frame) */
+    --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+    --_k: calc(var(--soft) * 0.2929);
+    --_c: calc(var(--chamfer) - var(--_k));
+
+    clip-path: shape(
+        from 0 var(--_t),
+        arc to var(--_k) var(--_c) of var(--soft) cw,
+        line to var(--_c) var(--_k),
+        arc to var(--_t) 0 of var(--soft) cw,
+        line to calc(100% - var(--radius)) 0,
+        arc to 100% var(--radius) of var(--radius) cw,
+        line to 100% calc(100% - var(--_t)),
+        arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--soft) cw,
+        line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+        arc to calc(100% - var(--_t)) 100% of var(--soft) cw,
+        line to var(--radius) 100%,
+        arc to 0 calc(100% - var(--radius)) of var(--radius) cw,
+        close
+    );
+}
+
+.toggle-switch__btn {
+    /* Concentric to the wrapper: knobs inherit from .toggle-switch */
+    --_br: max(0px, calc(var(--radius) - var(--pad))); /* button corner radius */
+    --_bc: calc(var(--chamfer) - var(--pad) * 0.5858); /* button chamfer cut */
+    --_bs: max(0px, calc(var(--soft) - var(--pad))); /* button blend radius */
+    --_bt: calc(var(--_bc) + var(--_bs) * 0.4142);
+    --_bk: calc(var(--_bs) * 0.2929);
+    --_bd: calc(var(--_bc) - var(--_bk));
+
+    &.is--home {
+        clip-path: shape(
+            from 0 var(--_bt),
+            arc to var(--_bk) var(--_bd) of var(--_bs) cw,
+            line to var(--_bd) var(--_bk),
+            arc to var(--_bt) 0 of var(--_bs) cw,
+            line to calc(100% - var(--_br)) 0,
+            arc to 100% var(--_br) of var(--_br) cw,
+            line to 100% calc(100% - var(--_br)),
+            arc to calc(100% - var(--_br)) 100% of var(--_br) cw,
+            line to var(--_br) 100%,
+            arc to 0 calc(100% - var(--_br)) of var(--_br) cw,
+            close
+        );
+    }
+
+    &.is--contact {
+        clip-path: shape(
+            from 0 var(--_br),
+            arc to var(--_br) 0 of var(--_br) cw,
+            line to calc(100% - var(--_br)) 0,
+            arc to 100% var(--_br) of var(--_br) cw,
+            line to 100% calc(100% - var(--_bt)),
+            arc to calc(100% - var(--_bk)) calc(100% - var(--_bd)) of var(--_bs) cw,
+            line to calc(100% - var(--_bd)) calc(100% - var(--_bk)),
+            arc to calc(100% - var(--_bt)) 100% of var(--_bs) cw,
+            line to var(--_br) 100%,
+            arc to 0 calc(100% - var(--_br)) of var(--_br) cw,
+            close
+        );
+    }
+}

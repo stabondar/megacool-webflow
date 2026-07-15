@@ -17,6 +17,7 @@ export default class CardContentFade
         this.instance = instance
         this.app = app
         this.main = main
+        this.container = this.instance.closest('.c')
 
         this.destroyed = false
 
@@ -27,11 +28,10 @@ export default class CardContentFade
 
     init()
     {
-        if (document.documentElement.classList.contains('w-editor')) return
-
         this.trigger =
             this.instance.querySelector(TRIGGER_SELECTOR) ??
             (this.instance.dataset.trigger ? this.instance.querySelector(this.instance.dataset.trigger) : null)
+        this.cards = this.instance.querySelectorAll('.ssp__card-wrap')
 
         this.contents = Array.from(this.instance.querySelectorAll(CONTENT_SELECTOR))
 
@@ -73,6 +73,17 @@ export default class CardContentFade
 
         const opacity = 1 - progress * this.fadeAmount
         this.contents.forEach((el) => gsap.set(el, { opacity }))
+
+        this.cards.forEach((card, index) =>
+        {
+            const height = card.getBoundingClientRect().height
+            card.style.setProperty('top', window.innerHeight / 2 - height / 2 + 'px')
+        })
+
+        this.container.style.setProperty(
+            'padding-bottom',
+            window.innerHeight / 2 - this.cards[1].getBoundingClientRect().height / 2 + 'px'
+        )
     }
 
     resize()

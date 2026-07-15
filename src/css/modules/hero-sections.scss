@@ -1,0 +1,71 @@
+/* HERO WRAP — clip-only mask (no border), same outline family as the ssp card
+   shells and .corner-frame. Units are rem on purpose: the site's fluid root is
+   16px * (viewport / design-frame) per breakpoint (1728 desktop, 834 tablet,
+   680 mobile-landscape, 428 mobile-portrait — see the root sizing embed), so
+   rem values reproduce design px at every width within each breakpoint.
+   Engines without shape() simply skip the clip. */
+
+/* .sht__wrap = technology hero; .shm__wrap = home hero. The home page also
+   carries an old polygon clip for .shm__wrap in a Webflow embed — this rule
+   must out-cascade it (runtime-injected styles load after page embeds). */
+.sht__wrap,
+.shm__wrap {
+    /* Desktop (>= 992px): square top; stepped chamfer bottom — left half
+       raised --step, step down at --step-x, chamfer cuts at both bottom
+       corners blended with --soft arcs. Knobs (keep --soft <= --chamfer): */
+    --soft: 0.5rem; /* blend/fillet radius */
+    --chamfer: 1.75rem; /* corner cut, from the corner along each edge — matches .corner-frame */
+    --step: 1.75rem; /* step height — the left shelf sits this far above the bottom */
+    --step-x: calc(50% - 1rem); /* x of the step's shelf-side sharp corner */
+
+    /* Derived — do not tune (same math as .corner-frame) */
+    --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+    --_k: calc(var(--soft) * 0.2929);
+    --_c: calc(var(--chamfer) - var(--_k));
+    --_a: calc(var(--soft) * 0.4142); /* tangent offset from a sharp step corner */
+
+    clip-path: shape(
+        from 0 0,
+        line to 100% 0,
+        line to 100% calc(100% - var(--_t)),
+        arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--soft) cw,
+        line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+        arc to calc(100% - var(--_t)) 100% of var(--soft) cw,
+        line to calc(var(--step-x) + var(--step) + var(--_a)) 100%,
+        arc to calc(var(--step-x) + var(--step) - var(--_k)) calc(100% - var(--_k)) of var(--soft) cw,
+        line to calc(var(--step-x) + var(--_k)) calc(100% - var(--step) + var(--_k)),
+        arc to calc(var(--step-x) - var(--_a)) calc(100% - var(--step)) of var(--soft) ccw,
+        line to var(--_t) calc(100% - var(--step)),
+        arc to var(--_c) calc(100% - var(--step) - var(--_k)) of var(--soft) cw,
+        line to var(--_k) calc(100% - var(--step) - var(--_c)),
+        arc to 0 calc(100% - var(--step) - var(--_t)) of var(--soft) cw,
+        close
+    );
+
+    /* Tablet + mobile (<= 991px) — the Figma mobile variant (node 782:225
+       mask SVG, 375x812 frame): a different shape, not a scaled-down desktop.
+       No chamfer cuts (plain rounded corners), step MIRRORED — the right half
+       is the raised shelf, the left half runs to the full bottom. Values are
+       the Figma frame's px / 16. Corner radius and step fillets share
+       --m-soft. */
+    @media (max-width: 991px) {
+        --m-soft: 0.5rem; /* corner radius + step fillet radius (8px in frame) */
+        --m-step: 1.5rem; /* shelf raise on the right half (24px in frame) */
+        --m-x: calc(50% + 1.0938rem); /* x of the step's shelf-side sharp corner (+17.5px in frame) */
+
+        clip-path: shape(
+            from 0 0,
+            line to 100% 0,
+            line to 100% calc(100% - var(--m-step) - var(--m-soft)),
+            arc to calc(100% - var(--m-soft)) calc(100% - var(--m-step)) of var(--m-soft) cw,
+            line to calc(var(--m-x) + var(--m-soft) * 0.4142) calc(100% - var(--m-step)),
+            arc to calc(var(--m-x) - var(--m-soft) * 0.2929) calc(100% - var(--m-step) + var(--m-soft) * 0.2929) of
+                var(--m-soft) ccw,
+            line to calc(var(--m-x) - var(--m-step) + var(--m-soft) * 0.2929) calc(100% - var(--m-soft) * 0.2929),
+            arc to calc(var(--m-x) - var(--m-step) - var(--m-soft) * 0.4142) 100% of var(--m-soft) cw,
+            line to var(--m-soft) 100%,
+            arc to 0 calc(100% - var(--m-soft)) of var(--m-soft) cw,
+            close
+        );
+    }
+}
