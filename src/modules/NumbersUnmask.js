@@ -83,6 +83,7 @@ export default class NumbersUnmask
     {
         const targets = this.getTargets(item)
         if (!targets.length) return
+        if (window.innerWidth < 992) return
 
         const start = toNumber(item.dataset.start, DEFAULT_START)
         const end = toNumber(item.dataset.end, DEFAULT_END)

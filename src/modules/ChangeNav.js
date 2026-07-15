@@ -12,6 +12,7 @@ export default class ChangeNav
         this.destroyed = false
 
         this.nav = document.querySelector('.nav')
+        this.navMob = document.querySelector('.bold-nav-full__bar')
         this.add = this.instance.hasAttribute('data-black') ? true : false
         this.onPass = this.instance.hasAttribute('data-leave')
         this.enterClass = null
@@ -26,6 +27,8 @@ export default class ChangeNav
     init()
     {
         const top = this.nav.offsetHeight / 2
+
+        // this.nav = window.innerWidth > 991 ? this.navDesktop : this.navMob
 
         this.scroll = ScrollTrigger.create({
             trigger: this.instance,
