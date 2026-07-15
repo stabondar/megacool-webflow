@@ -3,10 +3,20 @@ import glsl from 'vite-plugin-glsl'
 import { defineConfig } from 'vite'
 import mkcert from 'vite-plugin-mkcert'
 
+const productionUrl = 'https://megacool-webflow.vercel.app/'
+
+// Preview builds (e.g. the staging branch) must serve assets from their stable
+// branch URL so the Webflow embed's branchLink can load that branch's bundle.
+// VERCEL_ENV / VERCEL_BRANCH_URL are Vercel system env vars, exposed at build time.
+const branchUrl =
+    process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_BRANCH_URL
+        ? `https://${process.env.VERCEL_BRANCH_URL}/`
+        : null
+
 // vite.config.js
 export default defineConfig(
 {
-    base: 'https://megacool-webflow.vercel.app/',
+    base: branchUrl ?? productionUrl,
     resolve: {
         alias: {
             '@src': path.resolve(__dirname, 'src'),
