@@ -44,7 +44,7 @@ export default class Scroll
             }
         })
 
-        // this.watchContentHeight()
+        this.watchContentHeight()
     }
 
     // Content-height growth (lazy images/fonts below the fold) never fires a window

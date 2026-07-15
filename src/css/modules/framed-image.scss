@@ -1,19 +1,8 @@
-.shm__frames,
-.footer_frames {
-    .corner-frame {
-        --stroke: currentColor;
-    }
-}
-
 .corner-frame {
     --stroke: var(--_colors---black); /* line colour */
     --stroke-w: 1px; /* line thickness */
     --chamfer: 1.75rem; /* diagonal cut, from the corner along each edge */
     --soft: 0.5rem;
-
-    @media screen and (max-width: 479px) {
-        --chamfer: 1rem;
-    }
 
     &.is-top-left {
         --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
@@ -116,38 +105,23 @@
 }
 
 .framed-image {
-    /* Synced with .corner-frame: same knobs, same derived math, same
-       breakpoint override — the brackets must sit exactly on these corners.
-       If a knob or breakpoint changes in .corner-frame, mirror it here. */
-    --chamfer: 1.75rem; /* diagonal cut, from the corner along each edge */
-    --soft: 0.5rem;
-
-    @media screen and (max-width: 479px) {
-        --chamfer: 1rem;
-    }
-
-    /* Derived — do not tune */
-    --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
-    --_k: calc(var(--soft) * 0.2929);
-    --_c: calc(var(--chamfer) - var(--_k));
-
     clip-path: shape(
-        from 0 var(--_t),
-        arc to var(--_k) var(--_c) of var(--soft) cw,
-        line to var(--_c) var(--_k),
-        arc to var(--_t) 0 of var(--soft) cw,
-        line to calc(100% - var(--_t)) 0,
-        arc to calc(100% - var(--_c)) var(--_k) of var(--soft) cw,
-        line to calc(100% - var(--_k)) var(--_c),
-        arc to 100% var(--_t) of var(--soft) cw,
-        line to 100% calc(100% - var(--_t)),
-        arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--soft) cw,
-        line to calc(100% - var(--_c)) calc(100% - var(--_k)),
-        arc to calc(100% - var(--_t)) 100% of var(--soft) cw,
-        line to var(--_t) 100%,
-        arc to var(--_c) calc(100% - var(--_k)) of var(--soft) cw,
-        line to var(--_k) calc(100% - var(--_c)),
-        arc to 0 calc(100% - var(--_t)) of var(--soft) cw,
+        from 0 1.9571rem,
+        arc to 0.1464rem 1.6036rem of 0.5rem cw,
+        line to 1.6036rem 0.1464rem,
+        arc to 1.9571rem 0 of 0.5rem cw,
+        line to calc(100% - 1.9571rem) 0,
+        arc to calc(100% - 1.6036rem) 0.1464rem of 0.5rem cw,
+        line to calc(100% - 0.1464rem) 1.6036rem,
+        arc to 100% 1.9571rem of 0.5rem cw,
+        line to 100% calc(100% - 1.9571rem),
+        arc to calc(100% - 0.1464rem) calc(100% - 1.6036rem) of 0.5rem cw,
+        line to calc(100% - 1.6036rem) calc(100% - 0.1464rem),
+        arc to calc(100% - 1.9571rem) 100% of 0.5rem cw,
+        line to 1.9571rem 100%,
+        arc to 1.6036rem calc(100% - 0.1464rem) of 0.5rem cw,
+        line to 0.1464rem calc(100% - 1.6036rem),
+        arc to 0 calc(100% - 1.9571rem) of 0.5rem cw,
         close
     );
 }
