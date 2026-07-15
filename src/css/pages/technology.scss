@@ -17,25 +17,81 @@
         --stroke: color-mix(in srgb, var(--_colors---white) 50%, transparent);
     }
 
+    .ssp__col.is-img {
+        /* Chamfer knobs synced with .corner-frame (see framed-image.scss):
+           same values, same breakpoint override, so the brackets always sit
+           exactly on these corners. */
+        --chamfer: 1.75rem; /* diagonal cut, from the corner along each edge */
+        --soft: 0.5rem;
+
+        @media screen and (max-width: 479px) {
+            --chamfer: 1rem;
+        }
+
+        /* Derived — do not tune */
+        --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+        --_k: calc(var(--soft) * 0.2929);
+        --_c: calc(var(--chamfer) - var(--_k));
+        --_ri: max(0px, calc(var(--soft) - 1px)); /* ring inner blend arc radius */
+    }
+
     &.is--1 {
         padding-left: var(--_spacing---24);
 
         .ssp__col.is-img {
             clip-path: shape(
-                from 0 1.9571rem,
-                arc to 0.1464rem 1.6036rem of 0.5rem cw,
-                line to 1.6036rem 0.1464rem,
-                arc to 1.9571rem 0 of 0.5rem cw,
+                from 0 var(--_t),
+                arc to var(--_k) var(--_c) of var(--soft) cw,
+                line to var(--_c) var(--_k),
+                arc to var(--_t) 0 of var(--soft) cw,
                 line to 100% 0,
-                line to 100% 0,
-                line to 100% calc(100% - 1.9571rem),
-                arc to calc(100% - 0.1464rem) calc(100% - 1.6036rem) of 0.5rem cw,
-                line to calc(100% - 1.6036rem) calc(100% - 0.1464rem),
-                arc to calc(100% - 1.9571rem) 100% of 0.5rem cw,
-                line to 0 100%,
+                line to 100% calc(100% - var(--_t)),
+                arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--soft) cw,
+                line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+                arc to calc(100% - var(--_t)) 100% of var(--soft) cw,
                 line to 0 100%,
                 close
             );
+
+            /* Tablet/mobile border ring following the chamfered outline
+               (evenodd: outer outline + 1px inset copy). Remove the media
+               query to show it on desktop too. */
+            @media (max-width: 991px) {
+                position: relative;
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: 2;
+                    pointer-events: none;
+                    background: rgb(255 255 255 / 0.15);
+                    clip-path: shape(
+                        evenodd from 0 var(--_t),
+                        arc to var(--_k) var(--_c) of var(--soft) cw,
+                        line to var(--_c) var(--_k),
+                        arc to var(--_t) 0 of var(--soft) cw,
+                        line to 100% 0,
+                        line to 100% calc(100% - var(--_t)),
+                        arc to calc(100% - var(--_k)) calc(100% - var(--_c)) of var(--soft) cw,
+                        line to calc(100% - var(--_c)) calc(100% - var(--_k)),
+                        arc to calc(100% - var(--_t)) 100% of var(--soft) cw,
+                        line to 0 100%,
+                        close,
+                        move to 1px var(--_t),
+                        arc to calc(var(--_k) + 0.71px) calc(var(--_c) + 0.71px) of var(--_ri) cw,
+                        line to calc(var(--_c) + 0.71px) calc(var(--_k) + 0.71px),
+                        arc to var(--_t) 1px of var(--_ri) cw,
+                        line to calc(100% - 1px) 1px,
+                        line to calc(100% - 1px) calc(100% - var(--_t)),
+                        arc to calc(100% - var(--_k) - 0.71px) calc(100% - var(--_c) - 0.71px) of var(--_ri) cw,
+                        line to calc(100% - var(--_c) - 0.71px) calc(100% - var(--_k) - 0.71px),
+                        arc to calc(100% - var(--_t)) calc(100% - 1px) of var(--_ri) cw,
+                        line to 1px calc(100% - 1px),
+                        close
+                    );
+                }
+            }
         }
     }
 
@@ -44,19 +100,56 @@
         .ssp__col.is-img {
             clip-path: shape(
                 from 0 0,
-                line to 0 0,
-                line to calc(100% - 1.9571rem) 0,
-                arc to calc(100% - 1.6036rem) 0.1464rem of 0.5rem cw,
-                line to calc(100% - 0.1464rem) 1.6036rem,
-                arc to 100% 1.9571rem of 0.5rem cw,
+                line to calc(100% - var(--_t)) 0,
+                arc to calc(100% - var(--_c)) var(--_k) of var(--soft) cw,
+                line to calc(100% - var(--_k)) var(--_c),
+                arc to 100% var(--_t) of var(--soft) cw,
                 line to 100% 100%,
-                line to 100% 100%,
-                line to 1.9571rem 100%,
-                arc to 1.6036rem calc(100% - 0.1464rem) of 0.5rem cw,
-                line to 0.1464rem calc(100% - 1.6036rem),
-                arc to 0 calc(100% - 1.9571rem) of 0.5rem cw,
+                line to var(--_t) 100%,
+                arc to var(--_c) calc(100% - var(--_k)) of var(--soft) cw,
+                line to var(--_k) calc(100% - var(--_c)),
+                arc to 0 calc(100% - var(--_t)) of var(--soft) cw,
                 close
             );
+
+            /* Tablet/mobile border ring — mirror of is--1 (chamfers on the
+               top-right and bottom-left corners here). */
+            @media (max-width: 991px) {
+                position: relative;
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    z-index: 2;
+                    pointer-events: none;
+                    background: rgb(255 255 255 / 0.15);
+                    clip-path: shape(
+                        evenodd from 0 0,
+                        line to calc(100% - var(--_t)) 0,
+                        arc to calc(100% - var(--_c)) var(--_k) of var(--soft) cw,
+                        line to calc(100% - var(--_k)) var(--_c),
+                        arc to 100% var(--_t) of var(--soft) cw,
+                        line to 100% 100%,
+                        line to var(--_t) 100%,
+                        arc to var(--_c) calc(100% - var(--_k)) of var(--soft) cw,
+                        line to var(--_k) calc(100% - var(--_c)),
+                        arc to 0 calc(100% - var(--_t)) of var(--soft) cw,
+                        close,
+                        move to 1px 1px,
+                        line to calc(100% - var(--_t)) 1px,
+                        arc to calc(100% - var(--_c) - 0.71px) calc(var(--_k) + 0.71px) of var(--_ri) cw,
+                        line to calc(100% - var(--_k) - 0.71px) calc(var(--_c) + 0.71px),
+                        arc to calc(100% - 1px) var(--_t) of var(--_ri) cw,
+                        line to calc(100% - 1px) calc(100% - 1px),
+                        line to var(--_t) calc(100% - 1px),
+                        arc to calc(var(--_c) + 0.71px) calc(100% - var(--_k) - 0.71px) of var(--_ri) cw,
+                        line to calc(var(--_k) + 0.71px) calc(100% - var(--_c) - 0.71px),
+                        arc to 1px calc(100% - var(--_t)) of var(--_ri) cw,
+                        close
+                    );
+                }
+            }
         }
     }
 }
@@ -361,6 +454,19 @@
 @media (max-width: 767px) {
     [data-hide~='ml'] {
         display: none;
+    }
+
+    .ssp__card-wrap {
+        position: relative;
+        top: 0 !important;
+
+        &.is--2 {
+            margin-top: var(--_spacing---48);
+        }
+    }
+
+    .ssp__sticky-cards {
+        gap: 0;
     }
 }
 

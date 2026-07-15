@@ -1,4 +1,4 @@
-[data-home-icon='1'] {
+/* [data-home-icon='1'] {
     position: relative;
     width: 100%;
     aspect-ratio: 472 / 415;
@@ -37,5 +37,13 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     [data-home-icon-glass] {
         background: rgba(0, 50, 54, 0.14);
+    }
+} */
+
+@media screen and (max-width: 479px) {
+    [data-transition-page='home'] {
+        #w-node-_4b20897d-84ab-7454-3584-98b09b069706-37677bca {
+            place-self: start start;
+        }
     }
 }
