@@ -62,6 +62,23 @@
     .partner-track.is--about {
         .accordion {
             position: relative;
+            transition: flex-grow 0.6s cubic-bezier(0.38, 0.005, 0.215, 1);
+            flex-grow: 0;
+
+            &.is-open {
+                flex-grow: 1;
+
+                .accordion-body {
+                    &::after {
+                        opacity: 1;
+                    }
+                }
+            }
+
+            &.is--about {
+                display: flex;
+                flex-direction: column;
+            }
         }
         .accordion::after {
             content: '';
@@ -83,6 +100,10 @@
             grid-template-rows: 0fr;
             padding-top: 0;
             padding-bottom: 0;
+            padding-left: 0;
+            padding-right: 0;
+            margin-top: 0;
+            flex-grow: 1;
             transition:
                 grid-template-rows 0.6s cubic-bezier(0.38, 0.005, 0.215, 1),
                 padding-top 0.6s cubic-bezier(0.38, 0.005, 0.215, 1),
@@ -92,12 +113,25 @@
                 display: none !important;
             }
             &::after {
-                display: none !important;
+                content: '';
+                display: block;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                border-bottom: 1px dashed #ffffff26;
+                transition: opacity 0.6s cubic-bezier(0.38, 0.005, 0.215, 1);
+                opacity: 0;
+            }
+
+            .accordion-p {
+                padding-inline: var(--_spacing---32);
             }
         }
         .accordion.is-open .accordion-body.is--about {
             grid-template-rows: 1fr;
-            padding-top: var(--_spacing---space-lg);
+            padding-top: var(--_spacing---64);
             padding-bottom: 15rem;
         }
         .accordion-inner {
@@ -105,6 +139,7 @@
             min-height: 0;
             opacity: 0;
             transition: opacity 0.3s;
+            align-self: flex-start;
         }
         .accordion.is-open .accordion-inner {
             opacity: 1;

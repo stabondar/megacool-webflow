@@ -113,7 +113,7 @@
     padding-bottom: 0;
     transition: padding-bottom 0.55s cubic-bezier(0.38, 0.005, 0.215, 1);
 }
-.accordion.is-open .accordion-head {
+.accordion.is-open:not(.is--about) .accordion-head {
     padding-bottom: var(--_spacing---8);
 }
 

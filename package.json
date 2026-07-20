@@ -34,7 +34,7 @@
         "tempus": "^1.0.0-dev.10",
         "three": "^0.173.0",
         "three-custom-shader-material": "^6.4.0",
-        "vercel": "^41.1.4",
+        "vercel": "^56.4.0",
         "vite-plugin-mkcert": "^1.17.6"
     }
 }

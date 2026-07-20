@@ -36,6 +36,8 @@
     }
 
     &.is--1 {
+        padding-left: var(--_spacing---24);
+
         .ssp__col.is-img {
             clip-path: shape(
                 from 0 var(--_t),
@@ -94,6 +96,8 @@
     }
 
     &.is--2 {
+        padding-right: var(--_spacing---24);
+
         .ssp__col.is-img {
             clip-path: shape(
                 from 0 0,
@@ -345,6 +349,10 @@
         close
     );
     z-index: 0;
+}
+
+.ssp__image-content {
+    background-color: color-mix(in srgb, var(--_colors---white) 5%, transparent);
 }
 
 /* PRODUCT ECOSYSTEM SETUP */

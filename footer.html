@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>FooterCanvas dev</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                height: 100%;
+                background: #000;
+                overflow: hidden;
+            }
+            .stage {
+                position: relative;
+                width: 100vw;
+                height: 100vh;
+            }
+            .ref {
+                position: fixed;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                pointer-events: none;
+                opacity: 0;
+                z-index: 10;
+            }
+            .hint {
+                position: fixed;
+                bottom: 8px;
+                left: 8px;
+                color: #3d6;
+                font: 12px monospace;
+                z-index: 20;
+            }
+        </style>
+    </head>
+
+    <body>
+        <main>
+            <div class="stage" data-module="footer-canvas"></div>
+        </main>
+        <img
+            class="ref"
+            src="https://cdn.prod.website-files.com/6a3b8e988c96926237677ac3/6a3d7628e089b50579b689af_51fe1dcedfd4dccd68c20571d3847975fdd9427c.avif"
+        />
+        <div class="hint">R: reference overlay (0 / 50% / 100%) &middot; G: toggle GUI</div>
+
+        <script type="module">
+            import EventEmitter from '/src/utils/EventEmitter.js'
+            import FooterCanvas from '/src/modules/FooterCanvas.js'
+            import GUI from 'lil-gui'
+            import gsap from 'gsap'
+
+            class AppShim extends EventEmitter {}
+            const app = new AppShim()
+
+            // Plain rAF clock: the harness once froze when Tempus's loop was
+            // suspended by a browser-pane restart, so don't depend on it here.
+            class Clock extends EventEmitter {
+                constructor() {
+                    super()
+                    this.start = performance.now()
+                    this.elapsed = 0
+                    const loop = () => {
+                        this.elapsed = performance.now() - this.start
+                        this.trigger('tick')
+                        requestAnimationFrame(loop)
+                    }
+                    requestAnimationFrame(loop)
+                }
+            }
+            app.tick = new Clock()
+            app.tick.on('tick', () => app.trigger('tick'))
+
+            let resizeTimer
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer)
+                resizeTimer = setTimeout(() => app.trigger('resize'), 150)
+            })
+
+            // Preset under edit: /footer.html tunes "base", /footer.html?preset=overlay
+            // tunes "overlay". Each preset keeps its own localStorage state.
+            const preset = new URLSearchParams(location.search).get('preset') || 'base'
+
+            const el = document.querySelector('[data-module="footer-canvas"]')
+            el.dataset.preset = preset
+            const main = document.querySelector('main')
+            let fc = new FooterCanvas(el, app, main)
+            window.fc = fc
+
+            // The embedded browser pane suspends rAF while the page is
+            // occluded, freezing any rAF-driven loop. Timers keep running, so
+            // when rAF goes stale, advance the clock and render directly.
+            let lastRaf = performance.now()
+            const rafBeat = () => {
+                lastRaf = performance.now()
+                requestAnimationFrame(rafBeat)
+            }
+            requestAnimationFrame(rafBeat)
+            setInterval(() => {
+                if (performance.now() - lastRaf < 200) return
+                app.tick.elapsed = performance.now() - app.tick.start
+                const f = window.fc
+                if (!f.renderer || !f.blades) return
+                if (state.anim.playing) {
+                    f.blades.material.uniforms.uTime.value = (app.tick.elapsed - f.startTime) * 0.001
+                }
+                f.post.render()
+            }, 33)
+
+            /* ------------------------------------------------------------- */
+            /* GUI — every knob, persisted to localStorage.                   */
+            /* Defaults are read from the live instance so they always match  */
+            /* the values baked into FooterCanvas.js.                         */
+            /* ------------------------------------------------------------- */
+
+            const STORAGE_KEY = `fc-gui:${preset}`
+
+            const hex = (c) => '#' + c.getHexString()
+
+            function readState(f) {
+                const u = f.blades.material.uniforms
+                const o = f.post.outputMaterial.uniforms
+                const p = f.blades.params
+                const clear = f.renderer.getClearColor(f.scene.fog.color.clone())
+                return {
+                    camera: {
+                        px: f.cameraParams.position.x,
+                        py: f.cameraParams.position.y,
+                        pz: f.cameraParams.position.z,
+                        lx: f.cameraParams.lookAt.x,
+                        ly: f.cameraParams.lookAt.y,
+                        lz: f.cameraParams.lookAt.z,
+                        roll: f.cameraParams.roll,
+                        hfov: f.cameraParams.hfov,
+                        mouseFovEnabled: f.settings.camera.mouseFovEnabled,
+                        mouseFovMin: f.settings.camera.mouseFovMin,
+                        mouseFovMax: f.settings.camera.mouseFovMax,
+                    },
+                    stack: {
+                        count: p.count,
+                        spacing: p.spacing,
+                        startZ: p.startZ,
+                        bladeWidth: p.bladeWidth,
+                        bladeHeight: p.bladeHeight,
+                        bladeDepth: p.bladeDepth,
+                        widthSegments: p.widthSegments,
+                    },
+                    wave: {
+                        amp: u.uWaveAmp.value,
+                        ramp: u.uWaveRamp.value,
+                        plateau: u.uWavePlateau.value,
+                        speed: u.uWaveSpeed.value,
+                        slope: u.uWaveSlope.value,
+                        jitter: u.uWaveJitter.value,
+                    },
+                    lines: {
+                        edgeColor: hex(u.uEdgeColor.value),
+                        edgeWidth: u.uEdgeWidth.value,
+                        edgeIntensity: u.uEdgeIntensity.value,
+                        cornerRadius: u.uCornerRadius.value,
+                        endBand: u.uEndBand.value,
+                        endGlow: u.uEndGlow.value,
+                    },
+                    poolA: {
+                        color: hex(u.uPoolAColor.value),
+                        x: u.uPoolACenter.value.x,
+                        z: u.uPoolACenter.value.y,
+                        radius: u.uPoolARadius.value,
+                        intensity: u.uPoolAIntensity.value,
+                    },
+                    poolB: {
+                        color: hex(u.uPoolBColor.value),
+                        x: u.uPoolBCenter.value.x,
+                        z: u.uPoolBCenter.value.y,
+                        radius: u.uPoolBRadius.value,
+                        intensity: u.uPoolBIntensity.value,
+                    },
+                    atmosphere: {
+                        fogColor: hex(f.scene.fog.color),
+                        fogDensity: f.scene.fog.density,
+                        ambientColor: hex(f.ambient.color),
+                        ambientIntensity: f.ambient.intensity,
+                        dirColor: hex(f.directional.color),
+                        dirIntensity: f.directional.intensity,
+                        faceColor: hex(f.blades.material.color),
+                        clearColor: hex(clear),
+                        exposure: f.renderer.toneMappingExposure,
+                    },
+                    dof: {
+                        focus: o.uFocusDistance.value,
+                        range: o.uFocusRange.value,
+                        falloff: o.uFocusFalloff.value,
+                        blur: f.post.blurMaterialH.uniforms.uBlurStrength.value,
+                        depthBias: f.post.blurMaterialH.uniforms.uDepthBias.value,
+                    },
+                    vignette: {
+                        centerX: o.uVigCenter.value.x,
+                        centerY: o.uVigCenter.value.y,
+                        start: o.uVigStart.value,
+                        end: o.uVigEnd.value,
+                        darken: o.uVigDarken.value,
+                        tlStart: o.uTLStart.value,
+                        tlDarken: o.uTLDarken.value,
+                    },
+                    anim: { playing: !!f.continuous, time: u.uTime.value },
+                }
+            }
+
+            function deepMerge(base, extra) {
+                if (!extra) return base
+                for (const k of Object.keys(extra)) {
+                    if (extra[k] && typeof extra[k] === 'object' && base[k] && typeof base[k] === 'object')
+                        deepMerge(base[k], extra[k])
+                    else if (k in base) base[k] = extra[k]
+                }
+                return base
+            }
+
+            const defaults = readState(fc)
+
+            // Saved GUI state is stamped with a hash of the code defaults it
+            // was based on. When new defaults get baked into the module, any
+            // stale saved state is discarded so the code always wins — this
+            // prevents localStorage from silently masking freshly baked values.
+            const hash = (str) => {
+                let h = 5381
+                for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0
+                return String(h)
+            }
+            const defaultsHash = hash(JSON.stringify(defaults))
+            let saved = null
+            try {
+                const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+                if (raw && raw.defaultsHash === defaultsHash) saved = raw.state
+                else if (raw) localStorage.removeItem(STORAGE_KEY)
+            } catch (e) {
+                saved = null
+            }
+            const state = deepMerge(structuredClone(defaults), saved)
+
+            const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ defaultsHash, state }))
+
+            function apply() {
+                const f = window.fc
+                if (!f.renderer || !f.blades) return
+                const s = state
+                const u = f.blades.material.uniforms
+                const o = f.post.outputMaterial.uniforms
+
+                f.cameraParams.position.set(s.camera.px, s.camera.py, s.camera.pz)
+                f.cameraParams.lookAt.set(s.camera.lx, s.camera.ly, s.camera.lz)
+                f.cameraParams.roll = s.camera.roll
+                f.cameraParams.hfov = s.camera.hfov
+                f.applyCamera()
+
+                f.mouseFov.enabled = s.camera.mouseFovEnabled
+                f.mouseFov.min = s.camera.mouseFovMin
+                f.mouseFov.max = s.camera.mouseFovMax
+                f.mouseFov.current = s.camera.hfov
+                f.mouseFov.target = s.camera.hfov
+
+                u.uWaveAmp.value = s.wave.amp
+                u.uWaveRamp.value = s.wave.ramp
+                u.uWavePlateau.value = s.wave.plateau
+                u.uWaveSpeed.value = s.wave.speed
+                u.uWaveSlope.value = s.wave.slope
+                u.uWaveJitter.value = s.wave.jitter
+
+                u.uEdgeColor.value.set(s.lines.edgeColor)
+                u.uEdgeWidth.value = s.lines.edgeWidth
+                u.uEdgeIntensity.value = s.lines.edgeIntensity
+                u.uCornerRadius.value = s.lines.cornerRadius
+                u.uEndBand.value = s.lines.endBand
+                u.uEndGlow.value = s.lines.endGlow
+
+                u.uPoolAColor.value.set(s.poolA.color)
+                u.uPoolACenter.value.set(s.poolA.x, s.poolA.z)
+                u.uPoolARadius.value = s.poolA.radius
+                u.uPoolAIntensity.value = s.poolA.intensity
+                u.uPoolBColor.value.set(s.poolB.color)
+                u.uPoolBCenter.value.set(s.poolB.x, s.poolB.z)
+                u.uPoolBRadius.value = s.poolB.radius
+                u.uPoolBIntensity.value = s.poolB.intensity
+
+                f.scene.fog.color.set(s.atmosphere.fogColor)
+                f.scene.fog.density = s.atmosphere.fogDensity
+                f.ambient.color.set(s.atmosphere.ambientColor)
+                f.ambient.intensity = s.atmosphere.ambientIntensity
+                f.directional.color.set(s.atmosphere.dirColor)
+                f.directional.intensity = s.atmosphere.dirIntensity
+                f.blades.material.color.set(s.atmosphere.faceColor)
+                f.renderer.setClearColor(s.atmosphere.clearColor)
+                f.renderer.toneMappingExposure = s.atmosphere.exposure
+
+                o.uFocusDistance.value = s.dof.focus
+                o.uFocusRange.value = s.dof.range
+                o.uFocusFalloff.value = s.dof.falloff
+                for (const m of [f.post.blurMaterialH, f.post.blurMaterialV]) {
+                    m.uniforms.uBlurStrength.value = s.dof.blur
+                    m.uniforms.uDepthBias.value = s.dof.depthBias
+                }
+
+                o.uVigCenter.value.set(s.vignette.centerX, s.vignette.centerY)
+                o.uVigStart.value = s.vignette.start
+                o.uVigEnd.value = s.vignette.end
+                o.uVigDarken.value = s.vignette.darken
+                o.uTLStart.value = s.vignette.tlStart
+                o.uTLDarken.value = s.vignette.tlDarken
+
+                f.continuous = s.anim.playing
+                if (!s.anim.playing) u.uTime.value = s.anim.time
+                f.needsRender = true
+            }
+
+            // Geometry changes rebuild the instance through the module's own
+            // data attributes, so the GUI needs no hooks inside the module.
+            function rebuild() {
+                const s = state.stack
+                el.dataset.count = s.count
+                el.dataset.spacing = s.spacing
+                el.dataset.startZ = s.startZ
+                el.dataset.bladeWidth = s.bladeWidth
+                el.dataset.bladeHeight = s.bladeHeight
+                el.dataset.bladeDepth = s.bladeDepth
+                el.dataset.widthSegments = s.widthSegments
+                fc.destroy()
+                fc = new FooterCanvas(el, app, main)
+                window.fc = fc
+                apply()
+            }
+
+            // saved state may contain geometry overrides — rebuild once at boot
+            if (saved && JSON.stringify(state.stack) !== JSON.stringify(defaults.stack)) rebuild()
+            else apply()
+
+            /* -- panel -- */
+            const gui = new GUI({ title: `FooterCanvas — ${preset}` })
+            const onChange = () => {
+                apply()
+                save()
+            }
+
+            gui.add({ preset }, 'preset', ['base', 'overlay'])
+                .name('editing preset')
+                .onChange((v) => {
+                    location.search = v === 'base' ? '' : `?preset=${v}`
+                })
+
+            const fCam = gui.addFolder('Camera')
+            fCam.add(state.camera, 'px', -20000, 20000, 10).name('position x').onChange(onChange)
+            fCam.add(state.camera, 'py', 500, 12000, 10).name('position y').onChange(onChange)
+            fCam.add(state.camera, 'pz', -20000, 25000, 10).name('position z').onChange(onChange)
+            fCam.add(state.camera, 'lx', -20000, 20000, 10).name('lookAt x').onChange(onChange)
+            fCam.add(state.camera, 'ly', -8000, 4000, 10).name('lookAt y').onChange(onChange)
+            fCam.add(state.camera, 'lz', -30000, 5000, 10).name('lookAt z').onChange(onChange)
+            fCam.add(state.camera, 'roll', -45, 45, 0.1).onChange(onChange)
+            fCam.add(state.camera, 'hfov', 5, 60, 0.1).name('horizontal fov').onChange(onChange)
+            fCam.add(state.camera, 'mouseFovEnabled').name('mouse fov').onChange(onChange)
+            fCam.add(state.camera, 'mouseFovMin', 5, 60, 0.1).name('mouse fov min').onChange(onChange)
+            fCam.add(state.camera, 'mouseFovMax', 5, 60, 0.1).name('mouse fov max').onChange(onChange)
+            fCam.close()
+
+            const fStack = gui.addFolder('Stack (rebuilds)')
+            fStack.add(state.stack, 'count', 8, 200, 1)
+            fStack.add(state.stack, 'spacing', 50, 1200, 5)
+            fStack.add(state.stack, 'startZ', -2000, 8000, 50)
+            fStack.add(state.stack, 'bladeWidth', 1000, 12000, 50)
+            fStack.add(state.stack, 'bladeHeight', 100, 1200, 10)
+            fStack.add(state.stack, 'bladeDepth', 1, 40, 1)
+            fStack.add(state.stack, 'widthSegments', 8, 192, 4)
+            fStack.onFinishChange(() => {
+                rebuild()
+                save()
+            })
+            fStack.close()
+
+            const fWave = gui.addFolder('Wave / kinks')
+            fWave.add(state.wave, 'amp', -400, 400, 1).onChange(onChange)
+            fWave.add(state.wave, 'ramp', 20, 1000, 5).onChange(onChange)
+            fWave.add(state.wave, 'plateau', 0, 2000, 10).onChange(onChange)
+            fWave.add(state.wave, 'speed', 0, 2000, 5).onChange(onChange)
+            fWave.add(state.wave, 'slope', -30000, 30000, 100).onChange(onChange)
+            fWave.add(state.wave, 'jitter', 0, 2000, 10).onChange(onChange)
+            fWave.close()
+
+            const fLines = gui.addFolder('Lines')
+            fLines.addColor(state.lines, 'edgeColor').onChange(onChange)
+            fLines.add(state.lines, 'edgeWidth', 0.005, 0.15, 0.001).onChange(onChange)
+            fLines.add(state.lines, 'edgeIntensity', 0, 6, 0.05).onChange(onChange)
+            fLines.add(state.lines, 'cornerRadius', 0, 500, 5).onChange(onChange)
+            fLines.add(state.lines, 'endBand', 0, 500, 5).onChange(onChange)
+            fLines.add(state.lines, 'endGlow', 0, 2, 0.05).onChange(onChange)
+            fLines.close()
+
+            const fPoolA = gui.addFolder('Pool A (cyan cluster)')
+            fPoolA.addColor(state.poolA, 'color').onChange(onChange)
+            fPoolA.add(state.poolA, 'x', -4000, 4000, 10).onChange(onChange)
+            fPoolA.add(state.poolA, 'z', -25000, 5000, 10).onChange(onChange)
+            fPoolA.add(state.poolA, 'radius', 100, 5000, 10).onChange(onChange)
+            fPoolA.add(state.poolA, 'intensity', 0, 10, 0.05).onChange(onChange)
+            fPoolA.close()
+
+            const fPoolB = gui.addFolder('Pool B (silver zone)')
+            fPoolB.addColor(state.poolB, 'color').onChange(onChange)
+            fPoolB.add(state.poolB, 'x', -4000, 4000, 10).onChange(onChange)
+            fPoolB.add(state.poolB, 'z', -25000, 5000, 10).onChange(onChange)
+            fPoolB.add(state.poolB, 'radius', 100, 5000, 10).onChange(onChange)
+            fPoolB.add(state.poolB, 'intensity', 0, 10, 0.05).onChange(onChange)
+            fPoolB.close()
+
+            const fAtmo = gui.addFolder('Atmosphere')
+            fAtmo.addColor(state.atmosphere, 'fogColor').onChange(onChange)
+            fAtmo.add(state.atmosphere, 'fogDensity', 0, 0.0005, 0.000001).onChange(onChange)
+            fAtmo.addColor(state.atmosphere, 'ambientColor').onChange(onChange)
+            fAtmo.add(state.atmosphere, 'ambientIntensity', 0, 2, 0.01).onChange(onChange)
+            fAtmo.addColor(state.atmosphere, 'dirColor').onChange(onChange)
+            fAtmo.add(state.atmosphere, 'dirIntensity', 0, 2, 0.01).onChange(onChange)
+            fAtmo.addColor(state.atmosphere, 'faceColor').onChange(onChange)
+            fAtmo.addColor(state.atmosphere, 'clearColor').onChange(onChange)
+            fAtmo.add(state.atmosphere, 'exposure', 0.3, 2.5, 0.01).onChange(onChange)
+            fAtmo.close()
+
+            const fDof = gui.addFolder('Depth of field')
+            fDof.add(state.dof, 'focus', 0, 1, 0.001).onChange(onChange)
+            fDof.add(state.dof, 'range', 0, 0.3, 0.001).onChange(onChange)
+            fDof.add(state.dof, 'falloff', 0, 0.5, 0.001).onChange(onChange)
+            fDof.add(state.dof, 'blur', 0, 16, 0.5).onChange(onChange)
+            fDof.add(state.dof, 'depthBias', 0, 0.2, 0.001).onChange(onChange)
+            fDof.close()
+
+            const fVig = gui.addFolder('Vignette')
+            fVig.add(state.vignette, 'centerX', 0, 1, 0.01).onChange(onChange)
+            fVig.add(state.vignette, 'centerY', 0, 1, 0.01).onChange(onChange)
+            fVig.add(state.vignette, 'start', 0, 1, 0.01).onChange(onChange)
+            fVig.add(state.vignette, 'end', 0, 2, 0.01).onChange(onChange)
+            fVig.add(state.vignette, 'darken', 0, 1, 0.01).onChange(onChange)
+            fVig.add(state.vignette, 'tlStart', 0, 1, 0.01).onChange(onChange)
+            fVig.add(state.vignette, 'tlDarken', 0, 1, 0.01).onChange(onChange)
+            fVig.close()
+
+            const fAnim = gui.addFolder('Animation')
+            fAnim.add(state.anim, 'playing').onChange(onChange)
+            fAnim
+                .add(state.anim, 'time', 0, 60, 0.05)
+                .name('time (paused)')
+                .onChange(() => {
+                    if (state.anim.playing) return
+                    const f = window.fc
+                    f.blades.material.uniforms.uTime.value = state.anim.time
+                    f.post.render()
+                })
+            fAnim.close()
+
+            const actions = {
+                replayReveal: () => {
+                    const f = window.fc
+                    const s = f.settings
+                    if (!s.reveal?.enabled) return
+                    f.revealTween?.kill()
+                    f.blades.mesh.position.z = s.reveal.fromZ - f.blades.params.startZ
+                    f.needsRender = true
+                    f.revealTween = gsap.to(f.blades.mesh.position, {
+                        z: 0,
+                        duration: s.reveal.duration,
+                        ease: s.reveal.ease,
+                        onUpdate: () => (f.needsRender = true),
+                    })
+                },
+                copySettings: () => {
+                    const json = JSON.stringify(state, null, 2)
+                    navigator.clipboard?.writeText(json)
+                    console.log('FooterCanvas settings:\n' + json)
+                },
+                resetDefaults: () => {
+                    localStorage.removeItem(STORAGE_KEY)
+                    location.reload()
+                },
+            }
+            gui.add(actions, 'replayReveal').name('replay reveal')
+            gui.add(actions, 'copySettings').name('copy settings JSON')
+            gui.add(actions, 'resetDefaults').name('reset to code defaults')
+
+            /* -- reference overlay + hotkeys -- */
+            const ref = document.querySelector('.ref')
+            const stops = [0, 0.5, 1]
+            let idx = 0
+            window.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT') return
+                if (e.key.toLowerCase() === 'r') {
+                    idx = (idx + 1) % stops.length
+                    ref.style.opacity = stops[idx]
+                }
+                if (e.key.toLowerCase() === 'g') gui.show(gui._hidden)
+            })
+        </script>
+    </body>
+</html>

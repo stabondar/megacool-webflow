@@ -1,0 +1,42 @@
+/* CAREERS CARD — clip-only mask (no border), same outline family and knobs as
+   .sht__wrap / .pre-footer, flipped to the top: left half sits at the true
+   top, step down at --step-x to a shelf --step lower on the right, chamfer
+   cuts at the top-left corner (top edge to left edge) and from the shelf into
+   the right edge, all blended with --soft arcs. The bottom keeps plain
+   rounded corners at --radius, matching .home-card. Engines without shape()
+   simply skip the clip. */
+
+.sv__card {
+    /* Tune these knobs (keep --soft <= --chamfer): */
+    --soft: 0.5rem; /* blend/fillet radius */
+    --chamfer: 1.75rem; /* corner cut, from the corner along each edge — matches .corner-frame */
+    --step: 1.75rem; /* step height — the right shelf sits this far below the top */
+    --step-x: 50%; /* x of the step's shelf-side sharp corner */
+    --radius: 0.5rem; /* bottom corner radius — same as .home-card */
+
+    /* Derived — do not tune (same math as .corner-frame) */
+    --_t: calc(var(--chamfer) + var(--soft) * 0.4142); /* edge meets the blend arc here */
+    --_k: calc(var(--soft) * 0.2929);
+    --_c: calc(var(--chamfer) - var(--_k));
+    --_a: calc(var(--soft) * 0.4142); /* tangent offset from a sharp step corner */
+
+    clip-path: shape(
+        from 0 var(--_t),
+        arc to var(--_k) var(--_c) of var(--soft) cw,
+        line to var(--_c) var(--_k),
+        arc to var(--_t) 0 of var(--soft) cw,
+        line to calc(var(--step-x) - var(--step) - var(--_a)) 0,
+        arc to calc(var(--step-x) - var(--step) + var(--_k)) var(--_k) of var(--soft) cw,
+        line to calc(var(--step-x) - var(--_k)) calc(var(--step) - var(--_k)),
+        arc to calc(var(--step-x) + var(--_a)) var(--step) of var(--soft) ccw,
+        line to calc(100% - var(--_t)) var(--step),
+        arc to calc(100% - var(--_c)) calc(var(--step) + var(--_k)) of var(--soft) cw,
+        line to calc(100% - var(--_k)) calc(var(--step) + var(--_c)),
+        arc to 100% calc(var(--step) + var(--_t)) of var(--soft) cw,
+        line to 100% calc(100% - var(--radius)),
+        arc to calc(100% - var(--radius)) 100% of var(--radius) cw,
+        line to var(--radius) 100%,
+        arc to 0 calc(100% - var(--radius)) of var(--radius) cw,
+        close
+    );
+}
