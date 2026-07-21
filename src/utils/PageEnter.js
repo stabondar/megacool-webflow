@@ -15,7 +15,7 @@ export default class PageEnter
             paused: true,
             defaults: { duration: 1, ease: 'power4' },
             onComplete: () => this.complete(),
-            onStart: () => gsap.set([this.main], { autoAlpha: 1 }),
+            onStart: () => gsap.set([this.main, 'nav'], { autoAlpha: 1 }),
             delay: this.app.options.onceLoaded ? 0.5 : 0.7,
         })
 
