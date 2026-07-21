@@ -5,14 +5,14 @@ import TransitionLogo from '@utils/TransitionLogo.js'
 // The opaque band spans the full element with a 25% feathered edge on either
 // side. `cover` centres it on the element; `before`/`after` park the same
 // band one full travel (125%) off either edge, where the element is fully
-// masked out. Landscape sweeps left → right, portrait top → bottom.
+// masked out. Landscape sweeps left → right, portrait bottom → top.
 const maskSet = (dir) => ({
     before: `linear-gradient(${dir}, transparent -150%, #000 -125%, #000 -25%, transparent 0%, transparent 0%)`,
     cover: `linear-gradient(${dir}, transparent -25%, #000 0%, #000 100%, transparent 125%, transparent 125%)`,
     after: `linear-gradient(${dir}, transparent 100%, #000 125%, #000 225%, transparent 250%, transparent 250%)`,
 })
 
-const MASKS = { horizontal: maskSet('to right'), vertical: maskSet('to bottom') }
+const MASKS = { horizontal: maskSet('to right'), vertical: maskSet('to top') }
 
 class GradientTransition
 {
