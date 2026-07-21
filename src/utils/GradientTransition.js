@@ -2,17 +2,28 @@ import gsap from 'gsap'
 
 import TransitionLogo from '@utils/TransitionLogo.js'
 
-const MASK_LEFT = 'linear-gradient(to right, transparent -150%, #000 -125%, #000 -25%, transparent 0%, transparent 0%)'
-const MASK_COVER = 'linear-gradient(to right, transparent -25%, #000 0%, #000 100%, transparent 125%, transparent 125%)'
-const MASK_RIGHT =
-    'linear-gradient(to right, transparent 100%, #000 125%, #000 225%, transparent 250%, transparent 250%)'
+// The opaque band spans the full element with a 25% feathered edge on either
+// side. `cover` centres it on the element; `before`/`after` park the same
+// band one full travel (125%) off either edge, where the element is fully
+// masked out. Landscape sweeps left → right, portrait top → bottom.
+const maskSet = (dir) => ({
+    before: `linear-gradient(${dir}, transparent -150%, #000 -125%, #000 -25%, transparent 0%, transparent 0%)`,
+    cover: `linear-gradient(${dir}, transparent -25%, #000 0%, #000 100%, transparent 125%, transparent 125%)`,
+    after: `linear-gradient(${dir}, transparent 100%, #000 125%, #000 225%, transparent 250%, transparent 250%)`,
+})
+
+const MASKS = { horizontal: maskSet('to right'), vertical: maskSet('to bottom') }
 
 class GradientTransition
 {
-    constructor({ duration = 1, ease = 'expo.inOut' } = {})
+    // `duration` is one transition sweep; `introDuration` is the first-load
+    // reveal — slower by default so the single exit wipe matches the weight
+    // of a full enter/leave pass (two sweeps).
+    constructor({ duration = 1, ease = 'expo.inOut', introDuration = 2 } = {})
     {
         this.duration = duration
         this.ease = ease
+        this.introDuration = introDuration
 
         this.reduced =
             typeof window !== 'undefined' && window.matchMedia
@@ -84,13 +95,16 @@ class GradientTransition
         return curtain
     }
 
-    sweep(from, to, delay)
+    // Read per pass, so rotating the device between passes just picks up the
+    // new direction.
+    get masks()
     {
-        return gsap.fromTo(
-            this.curtain,
-            { maskImage: from },
-            { maskImage: to, duration: this.duration, ease: this.ease, delay: delay ? delay : 0 }
-        )
+        return window.innerHeight > window.innerWidth ? MASKS.vertical : MASKS.horizontal
+    }
+
+    sweep(from, to, { duration = this.duration, ease = this.ease, delay = 0 } = {})
+    {
+        return gsap.fromTo(this.curtain, { maskImage: from }, { maskImage: to, duration, ease, delay })
     }
 
     // First-load logo intro: the letters assemble element by element on the
@@ -106,15 +120,22 @@ class GradientTransition
     }
 
     // First-load reveal: the band slides off to the right, uncovering the page
-    // left → right.
-    async hideCurtain()
+    // left → right. Gated on BOTH the logo assembly and `ready` (the module /
+    // page build) — whichever lands last — so the curtain never uncovers a
+    // half-built page. onReveal fires the moment the sweep actually starts.
+    async hideCurtain({ ready = Promise.resolve(), onReveal } = {})
     {
         const curtain = this.ensureOverlay(false)
-        if (!curtain) return
 
-        if (this.reduced)
+        // Errors are logged, not rethrown: the reveal must always happen or
+        // the page stays covered forever.
+        const built = Promise.resolve(ready).catch((error) => console.error(error))
+
+        if (!curtain || this.reduced)
         {
-            gsap.set(curtain, { autoAlpha: 0 })
+            await built
+            onReveal?.()
+            if (curtain) gsap.set(curtain, { autoAlpha: 0 })
             return
         }
 
@@ -130,17 +151,22 @@ class GradientTransition
         {
             const remaining = Math.max(0, morph.totalDuration() - morph.totalTime() - chase)
             if (remaining) await new Promise((resolve) => gsap.delayedCall(remaining, resolve))
-
-            // A transition took over the curtain mid-wait — its pass owns the
-            // exit now.
-            if (this.loadMorph !== morph) return
-            this.loadMorph = null
         }
+
+        await built
+
+        // A transition took over the curtain mid-wait — its pass owns the
+        // exit (and the reveal) now.
+        if (this.loadMorph !== morph) return
+        this.loadMorph = null
+
+        onReveal?.()
 
         // onComplete, not .then(): a transition starting mid-sweep kills this
         // tween, and the late autoAlpha 0 must die with it or it would hide
         // the curtain in the middle of that transition's pass.
-        const tween = this.sweep(MASK_COVER, MASK_RIGHT)
+        const masks = this.masks
+        const tween = this.sweep(masks.cover, masks.after, { duration: this.introDuration })
         tween.eventCallback('onComplete', () => gsap.set(curtain, { autoAlpha: 0 }))
     }
 
@@ -167,18 +193,19 @@ class GradientTransition
             this.logo.reset()
         }
 
+        const masks = this.masks
         gsap.set(next, { autoAlpha: 0, maxHeight: '100dvh' })
-        gsap.set(curtain, { autoAlpha: 1, maskImage: MASK_LEFT })
+        gsap.set(curtain, { autoAlpha: 1, maskImage: masks.before })
 
         const play = async () =>
         {
-            await this.sweep(MASK_LEFT, MASK_COVER)
+            await this.sweep(masks.before, masks.cover)
             await ready
 
             gsap.set(next, { autoAlpha: 1 })
             onSwap?.()
 
-            await this.sweep(MASK_COVER, MASK_RIGHT)
+            await this.sweep(masks.cover, masks.after)
 
             gsap.set(curtain, { autoAlpha: 0 })
             gsap.set(next, { clearProps: 'maxHeight' })

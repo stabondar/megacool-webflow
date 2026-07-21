@@ -16,7 +16,7 @@ export default class PageEnter
             defaults: { duration: 1, ease: 'power4' },
             onComplete: () => this.complete(),
             onStart: () => gsap.set([this.main, 'nav'], { autoAlpha: 1 }),
-            delay: this.app.options.onceLoaded ? 0.5 : 0.7,
+            delay: this.app.options.onceLoaded ? 0.5 : 0.4,
         })
 
         this.ns = `pageEnter${++instanceCount}`

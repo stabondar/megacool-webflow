@@ -29,20 +29,24 @@ export default class GlobalLoader
 
     async load()
     {
-        await this.toLoad(this.main, this.app)
-        await this.app.page?.triggerLoad()
+        // Modules and the page build load while the logo intro plays on the
+        // curtain.
+        const ready = Promise.resolve()
+            .then(() => this.toLoad(this.main, this.app))
+            .then(() => this.app.page?.triggerLoad())
 
-        this.hide()
-    }
+        // The reveal waits for both the logo assembly and `ready` — whichever
+        // lands last — and the reveal state flips exactly when the sweep
+        // starts, so a fast load keeps the same timing as before.
+        gradientTransition.hideCurtain({
+            ready,
+            onReveal: () =>
+            {
+                this.app.loaderActive = false
+                this.app.trigger('reveal')
+            },
+        })
 
-    hide()
-    {
-        this.app.loaderActive = false
-        this.app.trigger('reveal')
-
-        // The curtain ships covering the page; the gradient band sweeps it
-        // off to the right, uncovering the page (and its intros) left to
-        // right.
-        gradientTransition.hideCurtain()
+        await ready
     }
 }
