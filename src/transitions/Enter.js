@@ -1,7 +1,7 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-import { pixelTransition } from '@utils/PixelTransition.js'
+import { gradientTransition } from '@utils/GradientTransition.js'
 import { scrollToAnchor } from '@utils/ScrollToAnchor.js'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -19,11 +19,11 @@ export default class Enter
         this.trigger = data.trigger
 
         // Sync mode: both containers are in the DOM. Pin the incoming page on
-        // top immediately; the wave's clip-path controls what's visible.
-        // Stacking is made explicit — the old container becomes its own
-        // stacking context at z 1, capping every z-indexed element inside it
-        // (nav, hero overlays), and the new container sits at z 90: above the
-        // old page, below the pixel overlay (z 100).
+        // top immediately but keep it invisible — the curtain swaps it in
+        // under full cover. Stacking is made explicit — the old container
+        // becomes its own stacking context at z 1, capping every z-indexed
+        // element inside it (nav, hero overlays), and the new container sits
+        // at z 90: above the old page, below the loader curtain (z 100).
         //
         // The old container is FROZEN at its current scroll offset (fixed,
         // negative top) so the window can jump to scroll 0 right away — the
@@ -37,6 +37,21 @@ export default class Enter
         this.app.loaderActive = true
 
         this.nav = document.querySelector('.nav')
+
+        // The nav lives outside the barba containers with a Webflow z-index
+        // the pinned full-viewport container (z 90) would otherwise cover.
+        // Pin it between the containers and the curtain so it stays visible
+        // through the pass, gets covered while the colour flips, and is
+        // revealed with the page — settle() clears it.
+        gsap.set(this.nav, { zIndex: 95 })
+
+        this.finished = this.run()
+    }
+
+    // Nav colour flips while the curtain fully covers the page (or right away
+    // when reduced motion skips the curtain), so the change is never visible.
+    setNav()
+    {
         if (this.container.hasAttribute('data-nav-black'))
         {
             this.nav.classList.add('black')
@@ -45,8 +60,6 @@ export default class Enter
         {
             this.nav.classList.remove('black')
         }
-
-        this.finished = this.run()
     }
 
     async run()
@@ -70,31 +83,40 @@ export default class Enter
         window.scrollTo(0, 0)
         document.documentElement.style.scrollBehavior = ''
 
-        if (pixelTransition.reduced)
+        if (gradientTransition.reduced)
         {
+            this.setNav()
             gsap.set(this.container, { autoAlpha: 1 })
             await this.build()
             this.destroyPrevious()
             this.settle()
             this.app.loaderActive = false
             this.app.trigger('reveal')
-            pixelTransition.skip()
+            gradientTransition.skip()
             return
         }
 
-        // Start the wave — stepped clip reveal of this container + pixel
-        // flicker — and build the page underneath while it plays.
-        const wave = pixelTransition.run(this.container)
+        // Start the curtain — it sweeps in over the old page while the new
+        // one builds underneath, swaps the containers under full cover, then
+        // sweeps out. Build errors are logged rather than rethrown: the
+        // curtain must always complete its pass, or the leave hook never
+        // releases and the old container stays in the DOM.
+        const built = this.build().catch((error) => console.error(error))
 
-        await this.build()
+        await gradientTransition.run(this.container, {
+            ready: built,
+            onSwap: () =>
+            {
+                this.setNav()
 
-        // Page is ready mid-wave: cue the intros as the mask uncovers them.
-        this.app.loaderActive = false
-        this.app.trigger('reveal')
+                // Page is ready and about to uncover: cue the intros as the
+                // curtain sweeps off.
+                this.app.loaderActive = false
+                this.app.trigger('reveal')
+            },
+        })
 
-        await wave
-
-        // The old container is now fully hidden behind the finished wave.
+        // The old container is now fully hidden behind the revealed new page.
         this.destroyPrevious()
         this.settle()
     }
@@ -172,11 +194,12 @@ export default class Enter
         this.oldTriggers.forEach((trigger) => trigger.kill())
     }
 
-    // Wave done, old container gone: put the new page back into normal flow at
-    // the top and re-measure everything.
+    // Curtain passed, old container gone: put the new page back into normal
+    // flow at the top and re-measure everything.
     settle()
     {
         gsap.set(this.container, { clearProps: 'position,top,left,right,zIndex' })
+        gsap.set(this.nav, { clearProps: 'zIndex' })
 
         document.documentElement.style.scrollBehavior = 'instant'
         window.scrollTo(0, 0)
@@ -188,6 +211,6 @@ export default class Enter
 
         // Layout is final and Lenis is live — if the trigger carried a
         // data-anchor, scroll to it now (jump instantly under reduced motion).
-        scrollToAnchor(this.trigger, this.app, { immediate: pixelTransition.reduced })
+        scrollToAnchor(this.trigger, this.app, { immediate: gradientTransition.reduced })
     }
 }

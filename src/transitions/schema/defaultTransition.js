@@ -2,9 +2,9 @@ export const defaultTransition = (name, app, CheckPages) =>
 {
     const transition = {
         name: name,
-        // Osmo-style pixel wave: leave and enter run concurrently, with both
-        // containers in the DOM — the incoming page is revealed on top by a
-        // stepped clip-path while the old one stays put underneath.
+        // Gradient-mask curtain: leave and enter run concurrently, with both
+        // containers in the DOM — the loader curtain sweeps in over the old
+        // page, the containers swap under full cover, and it sweeps out.
         sync: true,
         async leave(data)
         {
