@@ -1,4 +1,4 @@
-import gsap from 'gsap'
+import { gradientTransition } from '@utils/GradientTransition.js'
 
 export default class GlobalLoader
 {
@@ -7,8 +7,6 @@ export default class GlobalLoader
         this.app = app
         this.toLoad = toLoad
         this.main = container.container
-
-        this.loader = document.querySelector('.loader')
 
         this.nav = document.querySelector('.nav')
         if (this.main.hasAttribute('data-nav-black'))
@@ -22,29 +20,33 @@ export default class GlobalLoader
 
         this.app.loaderActive = true
 
+        // Kick the logo intro right away — it assembles on the curtain while
+        // the page loads underneath; hideCurtain() waits for it to finish.
+        gradientTransition.intro()
+
         this.load()
     }
 
     async load()
     {
-        await this.toLoad(this.main, this.app)
-        await this.app.page?.triggerLoad()
+        // Modules and the page build load while the logo intro plays on the
+        // curtain.
+        const ready = Promise.resolve()
+            .then(() => this.toLoad(this.main, this.app))
+            .then(() => this.app.page?.triggerLoad())
 
-        this.hide()
-    }
-
-    hide()
-    {
-        this.app.loaderActive = false
-        this.app.trigger('reveal')
-
-        if (!this.loader) return
-
-        gsap.to(this.loader, {
-            autoAlpha: 0,
-            duration: 0.8,
-            ease: 'power2.inOut',
-            onComplete: () => this.loader.classList.add('hidden'),
+        // The reveal waits for both the logo assembly and `ready` — whichever
+        // lands last — and the reveal state flips exactly when the sweep
+        // starts, so a fast load keeps the same timing as before.
+        gradientTransition.hideCurtain({
+            ready,
+            onReveal: () =>
+            {
+                this.app.loaderActive = false
+                this.app.trigger('reveal')
+            },
         })
+
+        await ready
     }
 }

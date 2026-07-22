@@ -16,11 +16,9 @@ export default class PageEnter
             defaults: { duration: 1, ease: 'power4' },
             onComplete: () => this.complete(),
             onStart: () => gsap.set([this.main, 'nav'], { autoAlpha: 1 }),
+            delay: this.app.options.onceLoaded ? 0.5 : 0.4,
         })
 
-        // Per-instance namespace: destroy is deferred until the next page is
-        // built, so a shared namespace would make this off() wipe the next
-        // PageEnter's reveal/destroy listeners.
         this.ns = `pageEnter${++instanceCount}`
 
         this.app.on(`destroy.${this.ns}`, () => this.destroy())
