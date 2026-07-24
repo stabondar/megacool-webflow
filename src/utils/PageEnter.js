@@ -30,6 +30,17 @@ export default class PageEnter
         else this.tl.play()
     }
 
+    // One SplitText owner per element: if a data-module="text-reveal" instance
+    // already claimed this element, its revert snapshots would restore lines
+    // frozen mid-roll behind their masks — retire it before the entrance splits.
+    adopt(el)
+    {
+        const owner = el?.closest('[data-module~="text-reveal"]')
+        if (owner) this.app.moduleLoader?.getInstance(owner, 'TextReveal')?.destroy()
+
+        return el
+    }
+
     complete()
     {}
 

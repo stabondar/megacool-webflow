@@ -1,3 +1,30 @@
+/* ABOUT HERO — short-viewport overflow guard.
+   The heading's row bottom is width-driven (the globe column sets the row
+   heights, ~652px of stack at 1280w) while Webflow fixes the chamfered card at
+   100vh, whose polygon cuts 45.1px above the card bottom on the left half.
+   Under ~700px of viewport height the two collide and the clip-path guillotines
+   the heading's last line. Let the card grow to its content instead; the grid's
+   bottom padding reserves the polygon's raised left shelf so the end-aligned
+   heading can never sit inside the cut. On taller viewports min-height wins and
+   the layout is pixel-identical to the fixed 100vh design. */
+
+@media (min-width: 992px) {
+    .section.is--about-hero {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .section.is--about-hero .c.is--about {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .section.is--about-hero ._w-grid.is--about-hero {
+        height: auto;
+        padding-bottom: 46px;
+    }
+}
+
 /* VALUES BG */
 
 .section.is--values {

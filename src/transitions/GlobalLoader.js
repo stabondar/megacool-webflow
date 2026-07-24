@@ -30,8 +30,10 @@ export default class GlobalLoader
     async load()
     {
         // Modules and the page build load while the logo intro plays on the
-        // curtain.
+        // curtain. Fonts must land first: every SplitText below measures the
+        // rendered text, and fallback-font lines break in the wrong places.
         const ready = Promise.resolve()
+            .then(() => document.fonts?.ready)
             .then(() => this.toLoad(this.main, this.app))
             .then(() => this.app.page?.triggerLoad())
 

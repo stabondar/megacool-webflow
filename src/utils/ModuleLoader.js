@@ -3,6 +3,15 @@ export default class ModuleLoader
     constructor(app)
     {
         this.app = app
+
+        // element -> { ModuleName: instance }, so other systems (page loaders)
+        // can find and retire an instance that claimed an element they animate
+        this.instances = new WeakMap()
+    }
+
+    getInstance(element, name)
+    {
+        return this.instances.get(element)?.[name]
     }
 
     async loadModules(main)
@@ -29,7 +38,16 @@ export default class ModuleLoader
                     const fileName = this.toPascalCase(value)
 
                     const modulePromise = import(`@modules/${fileName}.js`)
-                        .then((module) => new module.default(element, this.app, main))
+                        .then((module) =>
+                        {
+                            const instance = new module.default(element, this.app, main)
+
+                            const entry = this.instances.get(element) ?? {}
+                            entry[fileName] = instance
+                            this.instances.set(element, entry)
+
+                            return instance
+                        })
                         .catch((error) => console.warn(`Module "${fileName}" failed: ${error.message}`))
                     modulePromises.push(modulePromise)
                 }

@@ -2,6 +2,8 @@ import { gsap, ScrollTrigger, SplitText } from 'gsap/all'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
+let instanceCount = 0
+
 export default class Title
 {
     constructor(instance, app)
@@ -10,10 +12,19 @@ export default class Title
         this.app = app
 
         this.destroyed = false
+        this.completed = false
+        this.ns = `textReveal${++instanceCount}`
 
-        this.init()
-        this.app.on('resize', () => this.resize())
-        this.app.on('destroy', () => this.destroy())
+        // Splitting with fallback-font metrics groups the wrong lines and the
+        // masks inherit the error, so wait for the real font before measuring.
+        ;(document.fonts?.ready ?? Promise.resolve()).then(() =>
+        {
+            if (this.destroyed) return
+            this.init()
+        })
+
+        this.app.on(`resize.${this.ns}`, () => this.resize())
+        this.app.on(`destroy.${this.ns}`, () => this.destroy())
     }
 
     init()
@@ -23,15 +34,17 @@ export default class Title
 
         this.split = new SplitText(this.text, { type: 'lines' })
         this.splitSecond = new SplitText(this.split.lines, { type: 'lines' })
-        gsap.set(this.split.lines, {
-            overflow: 'hidden',
-            paddingTop: '0.1em',
-            paddingBottom: '0.1em',
-            marginTop: '-0.1em',
-            marginBottom: '-0.1em',
-        })
+        // clip-path instead of overflow+padding: zero layout impact (the old
+        // padding/negative-margin pair drifted line spacing via margin
+        // collapsing, so the revert on complete visibly snapped), while the
+        // negative insets keep ascenders and descenders unclipped.
+        gsap.set(this.split.lines, { clipPath: 'inset(-0.15em -0.1em)' })
 
-        this.tl = gsap.timeline({ paused: true, defaults: { duration: 1, ease: 'power3' } })
+        this.tl = gsap.timeline({
+            paused: true,
+            defaults: { duration: 1, ease: 'power3' },
+            onComplete: () => this.complete(),
+        })
 
         this.tl.fromTo(
             this.splitSecond.lines,
@@ -42,24 +55,58 @@ export default class Title
         this.scroll = ScrollTrigger.create({
             trigger: this.instance,
             start: 'top 80%',
-            onEnter: () => this.tl.play(),
+            onEnter: () => this.play(),
         })
+    }
+
+    // Above-the-fold triggers fire while the loader curtain still covers the
+    // page — hold those until the reveal cue so the roll-up is actually seen.
+    play()
+    {
+        if (this.app.loaderActive) this.app.on(`reveal.${this.ns}`, () => this.tl.play())
+        else this.tl.play()
+    }
+
+    // The masks exist only for the animation: reverting to the plain heading
+    // means no overflow clip or stale transform can ever cut a resting line,
+    // whatever the viewport does afterwards.
+    complete()
+    {
+        this.completed = true
+        this.revert()
+    }
+
+    revert()
+    {
+        this.splitSecond?.revert()
+        this.split?.revert()
+        this.splitSecond = this.split = null
     }
 
     resize()
     {
-        if (this.destroyed) return
+        if (this.destroyed || this.completed) return
+        if (!this.split) return
 
-        this.split?.revert()
-        this.tl?.kill()
-        this.scroll?.kill()
-
+        this.teardown()
         this.init()
+    }
+
+    teardown()
+    {
+        this.scroll?.kill()
+        this.tl?.kill()
+        this.revert()
     }
 
     destroy()
     {
         if (this.destroyed) return
         this.destroyed = true
+
+        this.app.off(`resize.${this.ns}`)
+        this.app.off(`destroy.${this.ns}`)
+        this.app.off(`reveal.${this.ns}`)
+        this.teardown()
     }
 }

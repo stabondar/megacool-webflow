@@ -21,21 +21,26 @@ export default class Loader extends PageEnter
 
         this.build()
         this.start()
+
+        this.app.on(`resize.${this.ns}`, () => this.resize())
     }
 
-    // split into clip-masked lines (+ words); returns the words to roll
+    // split into clip-masked lines (+ words); returns the words to roll.
+    // clip-path (not overflow+padding) so the split lines lay out exactly like
+    // the plain heading and the revert on complete is seamless; the negative
+    // insets keep ascenders and descenders unclipped.
     words(el)
     {
         const split = new SplitText(el, { type: 'lines, words' })
-        gsap.set(split.lines, { overflow: 'hidden', paddingBottom: '0.1em', marginBottom: '-0.1em' })
+        gsap.set(split.lines, { clipPath: 'inset(-0.15em -0.1em)' })
         this.splits.push(split)
         return split.words
     }
 
     build()
     {
-        const heading = this.hero.querySelector('h1, .h-h1')
-        const descrs = [...this.hero.querySelectorAll('.paragraph, p')]
+        const heading = this.adopt(this.hero.querySelector('h1, .h-h1'))
+        const descrs = [...this.hero.querySelectorAll('.paragraph, p')].map((el) => this.adopt(el))
         const btns = [...this.hero.querySelectorAll('.button, .btn')]
         const els = this.hero.querySelectorAll('[data-load]')
 
@@ -53,6 +58,22 @@ export default class Loader extends PageEnter
         this.revert()
     }
 
+    // A resize mid-entrance leaves the split lines measured for the old
+    // viewport: re-split if the roll hasn't been revealed yet, land it if it
+    // is in flight (complete() then reverts to the plain, unclippable text).
+    resize()
+    {
+        if (this.destroyed || !this.splits.length) return
+
+        if (this.tl.paused())
+        {
+            this.revert()
+            this.tl.clear()
+            this.build()
+        }
+        else if (this.tl.progress() < 1) this.tl.progress(1)
+    }
+
     // revert inner-most splits first so nested (double) splits unwind cleanly
     revert()
     {
@@ -63,6 +84,7 @@ export default class Loader extends PageEnter
     destroy()
     {
         super.destroy()
+        this.app.off(`resize.${this.ns}`)
         this.revert()
     }
 }
