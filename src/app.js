@@ -95,7 +95,7 @@ export default class app extends EventEmitter
             onceLoaded: false,
         }
 
-        const [Scroll, Sizes, Time, ModuleLoader, Observer, Nav, Navigation] = await Promise.all([
+        const [Scroll, Sizes, Time, ModuleLoader, Observer, Nav, Navigation, CookieConsent] = await Promise.all([
             import('@utils/Scroll.js'),
             import('@utils/Sizes.js'),
             import('@utils/Tick.js'),
@@ -103,6 +103,7 @@ export default class app extends EventEmitter
             import('@utils/Observer.js'),
             import('@utils/Nav.js'),
             import('@modules/Navigation.js'),
+            import('@modules/CookieConsent.js'),
         ])
 
         app.scroll = new Scroll.default()
@@ -126,6 +127,13 @@ export default class app extends EventEmitter
         // changes).
         const navToggle = document.querySelector('[data-module="navigation"]')
         if (navToggle) app.navigation = new Navigation.default(navToggle, app, main, true)
+
+        // Consent UI: same story as the nav — it injects itself into <body>,
+        // outside the Barba container, so it is created once here and never
+        // torn down by a transition. utils/Consent.js has already run by this
+        // point (imported by the module), so gated tags stay inert from the
+        // first frame regardless of when the banner becomes visible.
+        app.cookieConsent = new CookieConsent.default(app)
     }
 
     async onceLoad(next)

@@ -1,0 +1,399 @@
+// Cookie banner + preference centre (modules/CookieConsent.js).
+//
+// The markup is injected by JS rather than authored in Webflow, so unlike the
+// other module stylesheets this file owns every visual — it cannot lean on a
+// Designer class. Values are taken from the site's own tokens (Webflow
+// variables where they exist, the same literals the HubSpot form uses where a
+// component needs them) so it reads as part of the site, not as a bolted-on
+// consent widget.
+
+$black: #090909;
+$black-70: rgba(9, 9, 9, 0.7);
+$white: #ffffff;
+$grey-100: #e1e5e4;
+$teal-500: #07ffe4;
+$teal-800: #00a795;
+$radius: 9px;
+$font: 'Alliance No', Arial, sans-serif;
+
+// The banner sits above the site but below the nav's fullscreen menu tile.
+$z-banner: 800;
+$z-panel: 900;
+
+html.cc-locked,
+html.cc-locked body {
+    overflow: hidden;
+}
+
+.cc {
+    font-family: $font;
+    font-feature-settings:
+        'ss01' 1,
+        'ss02' 1;
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    button {
+        font-family: inherit;
+        cursor: pointer;
+    }
+}
+
+/* ------------------------------------------------------------------ banner */
+
+.cc__banner {
+    position: fixed;
+    z-index: $z-banner;
+    right: var(--_spacing---24, 1.5rem);
+    bottom: var(--_spacing---24, 1.5rem);
+    width: calc(100vw - var(--_spacing---48, 3rem));
+    max-width: calc(560 / 16 * 1rem);
+    padding: var(--_spacing---32, 2rem);
+    background: $white;
+    color: $black;
+    border-radius: $radius;
+    box-shadow: 0 calc(24 / 16 * 1rem) calc(60 / 16 * 1rem) rgba(9, 9, 9, 0.18);
+
+    // Hidden state is carried by the class, not by [hidden] alone, so the
+    // element can animate in after it is laid out.
+    opacity: 0;
+    transform: translateY(calc(16 / 16 * 1rem));
+    transition:
+        opacity 0.5s var(--expoInOut, ease),
+        transform 0.5s var(--expoInOut, ease);
+
+    .cc--banner-visible & {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    @media screen and (max-width: 767px) {
+        left: var(--_spacing---16, 1rem);
+        right: var(--_spacing---16, 1rem);
+        bottom: var(--_spacing---16, 1rem);
+        width: auto;
+        max-width: none;
+        padding: var(--_spacing---24, 1.5rem);
+    }
+}
+
+.cc__title {
+    margin: 0 0 var(--_spacing---12, 0.75rem);
+    font-size: calc(24 / 16 * 1rem);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+}
+
+.cc__body {
+    margin: 0 0 var(--_spacing---12, 0.75rem);
+    font-size: 1rem;
+    line-height: 1.4;
+    color: $black-70;
+
+    &:last-of-type {
+        margin-bottom: var(--_spacing---24, 1.5rem);
+    }
+}
+
+.cc__body--small {
+    font-size: calc(14 / 16 * 1rem);
+    line-height: 1.5;
+}
+
+// Same underline treatment as the privacy policy body and the HubSpot consent
+// copy — every legal link on the site reads alike. inline-block for the same
+// reason it is set there: something upstream renders anchors as blocks, which
+// breaks a link sitting mid-sentence onto its own line (and strands the
+// punctuation after it on the next one).
+.cc__link {
+    display: inline-block;
+    color: $black;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(9, 9, 9, 0.35);
+    transition:
+        color 200ms ease,
+        text-decoration-color 200ms ease;
+
+    &:hover {
+        color: $teal-800;
+        text-decoration-color: currentColor;
+    }
+}
+
+/* ----------------------------------------------------------------- buttons */
+
+.cc__actions,
+.cc__panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(8 / 16 * 1rem);
+}
+
+// Accept and Reject are the same button, deliberately: consent has to be as
+// easy to refuse as it is to give, so neither may be styled as the quiet one.
+.cc__btn {
+    flex: 1 1 auto;
+    min-width: calc(140 / 16 * 1rem);
+    padding: calc(15 / 16 * 1rem) calc(20 / 16 * 1rem);
+    border: 1px solid $black;
+    border-radius: $radius;
+    font-size: calc(12 / 16 * 1rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    text-align: center;
+    transition:
+        background-color 200ms ease,
+        color 200ms ease,
+        border-color 200ms ease;
+
+    &:focus-visible {
+        outline: 2px solid $teal-800;
+        outline-offset: 2px;
+    }
+}
+
+.cc__btn--solid {
+    background: $black;
+    color: $white;
+
+    &:hover {
+        background: $teal-800;
+        border-color: $teal-800;
+    }
+}
+
+.cc__btn--ghost {
+    background: transparent;
+    color: $black;
+
+    &:hover {
+        background: $grey-100;
+    }
+}
+
+/* ------------------------------------------------------- preference centre */
+
+.cc__overlay {
+    position: fixed;
+    z-index: $z-panel;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--_spacing---24, 1.5rem);
+
+    // A full-viewport layer at z 900 must never intercept anything while the
+    // panel is closed. Two guards, because either alone has a gap: display
+    // here beats the [hidden] attribute on specificity, and the class that
+    // opens the panel lands a frame after `hidden` is cleared (the animation
+    // needs the element laid out first) — that frame would otherwise be a
+    // live click blocker.
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+
+    .cc--panel-open & {
+        pointer-events: auto;
+    }
+
+    @media screen and (max-width: 767px) {
+        padding: 0;
+        align-items: flex-end;
+    }
+}
+
+.cc__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(9, 9, 9, 0.6);
+    opacity: 0;
+    transition: opacity 0.4s var(--expoInOut, ease);
+
+    .cc--panel-open & {
+        opacity: 1;
+    }
+}
+
+.cc__panel {
+    position: relative;
+    width: 100%;
+    max-width: calc(640 / 16 * 1rem);
+    max-height: calc(100dvh - var(--_spacing---48, 3rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--_spacing---40, 2.5rem);
+    background: $white;
+    color: $black;
+    border-radius: $radius;
+
+    opacity: 0;
+    transform: translateY(calc(16 / 16 * 1rem));
+    transition:
+        opacity 0.4s var(--expoInOut, ease),
+        transform 0.4s var(--expoInOut, ease);
+
+    .cc--panel-open & {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    @media screen and (max-width: 767px) {
+        max-height: 90dvh;
+        padding: var(--_spacing---24, 1.5rem);
+        border-radius: $radius $radius 0 0;
+    }
+}
+
+.cc__panel-head {
+    position: relative;
+    padding-right: calc(40 / 16 * 1rem);
+    margin-bottom: var(--_spacing---16, 1rem);
+}
+
+.cc__eyebrow {
+    margin: 0 0 calc(6 / 16 * 1rem);
+    font-size: calc(14 / 16 * 1rem);
+    font-weight: 500;
+    line-height: 1;
+    text-transform: uppercase;
+    color: $teal-800;
+}
+
+.cc__close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc(32 / 16 * 1rem);
+    height: calc(32 / 16 * 1rem);
+    padding: 0;
+    background: transparent;
+    border: 1px solid rgba(9, 9, 9, 0.2);
+    border-radius: 50%;
+    color: $black;
+    font-size: calc(12 / 16 * 1rem);
+    line-height: 1;
+    transition:
+        background-color 200ms ease,
+        border-color 200ms ease;
+
+    &:hover {
+        background: $grey-100;
+        border-color: $black;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $teal-800;
+        outline-offset: 2px;
+    }
+}
+
+/* -------------------------------------------------------------- categories */
+
+.cc__list {
+    margin: 0 0 var(--_spacing---24, 1.5rem);
+    padding: 0;
+    list-style: none;
+}
+
+.cc__cat {
+    padding: var(--_spacing---16, 1rem) 0;
+    border-top: 1px solid $grey-100;
+
+    &:last-child {
+        border-bottom: 1px solid $grey-100;
+    }
+}
+
+.cc__cat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--_spacing---16, 1rem);
+    margin-bottom: calc(6 / 16 * 1rem);
+}
+
+.cc__cat-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.cc__always {
+    flex: 0 0 auto;
+    font-size: calc(12 / 16 * 1rem);
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: $teal-800;
+}
+
+/* ----------------------------------------------------------------- switches */
+
+.cc__switch {
+    flex: 0 0 auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+
+    &:focus-visible .cc__switch-track {
+        outline: 2px solid $teal-800;
+        outline-offset: 2px;
+    }
+}
+
+.cc__switch-track {
+    display: block;
+    width: calc(44 / 16 * 1rem);
+    height: calc(24 / 16 * 1rem);
+    padding: 2px;
+    background: $grey-100;
+    border: 1px solid rgba(9, 9, 9, 0.2);
+    border-radius: calc(12 / 16 * 1rem);
+    transition:
+        background-color 200ms ease,
+        border-color 200ms ease;
+}
+
+.cc__switch-thumb {
+    display: block;
+    width: calc(18 / 16 * 1rem);
+    height: calc(18 / 16 * 1rem);
+    background: $white;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(9, 9, 9, 0.25);
+    transition: transform 200ms var(--expoInOut, ease);
+}
+
+.cc__switch[aria-checked='true'] {
+    .cc__switch-track {
+        background: $teal-500;
+        border-color: $teal-800;
+    }
+
+    .cc__switch-thumb {
+        transform: translateX(calc(20 / 16 * 1rem));
+    }
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+    .cc__banner,
+    .cc__panel,
+    .cc__backdrop,
+    .cc__switch-thumb {
+        transition: none;
+    }
+}
