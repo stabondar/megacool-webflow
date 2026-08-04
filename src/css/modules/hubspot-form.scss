@@ -152,6 +152,23 @@ $font: 'Alliance No', Arial, sans-serif;
             }
         }
 
+        // The "Privacy Policy" link injected into the consent copy
+        // (HubspotForm.linkifyPrivacyPolicy). Same underline treatment as the
+        // privacy policy page's own rich text, so legal links read alike.
+        a {
+            color: $black;
+            text-decoration: underline;
+            text-underline-offset: 0.15em;
+            text-decoration-thickness: 1px;
+            text-decoration-color: rgba(9, 9, 9, 0.35);
+            transition: color 200ms ease, text-decoration-color 200ms ease;
+
+            &:hover {
+                color: var(--_colors---teal-800);
+                text-decoration-color: currentColor;
+            }
+        }
+
         .hs-form-booleancheckbox-display {
             display: flex;
             align-items: flex-start;

@@ -9,7 +9,12 @@ const DEFAULTS = {
     portalId: '147924457',
     formId: 'fa7d3834-c944-49f3-a65f-c4b5601e5cf0',
     region: 'eu1',
+    privacyUrl: '/privacy-policy',
 }
+
+// HubSpot stores the GDPR consent copy as a plain string, so the "Privacy
+// Policy" it mentions arrives as text with no link. Matched case-insensitively.
+const PRIVACY_PHRASE = 'Privacy Policy'
 
 /**
  * Renders a HubSpot form into [data-module="hubspot-form"]. Mirrors the
@@ -23,6 +28,8 @@ const DEFAULTS = {
  *   data-strip-richtext="true"   remove HubSpot rich-text rows (OFF by default:
  *                                EU forms often carry GDPR consent copy that
  *                                must stay visible)
+ *   data-privacy-url="/privacy-policy"  target for the "Privacy Policy" mention
+ *                                in the consent copy (see linkifyPrivacyPolicy)
  *   data-redirect="/thank-you"   navigate here after a successful submit
  */
 export default class HubspotForm
@@ -106,6 +113,8 @@ export default class HubspotForm
 
         if (this.instance.dataset.stripRichtext === 'true') this.stripRichtext()
 
+        this.linkifyPrivacyPolicy()
+
         // The injected form grows the document; let it lay out, then re-measure
         // so Lenis + ScrollTrigger positions stay correct (same reason the
         // Accordion refreshes after opening).
@@ -171,6 +180,56 @@ export default class HubspotForm
         actions.appendChild(label)
 
         this.textHover = new TextHover(actions, this.app, this.main)
+    }
+
+    // Turn the "Privacy Policy" mention in the GDPR consent copy into a real
+    // link. HubSpot's form editor keeps that sentence as a plain string, so the
+    // reference ships unlinked — patch it here instead of maintaining a fork of
+    // the copy. Opens in a new tab: the visitor is mid-form, and a same-tab
+    // navigation (Barba or not) would throw away everything they've typed.
+    linkifyPrivacyPolicy()
+    {
+        const href = this.instance.dataset.privacyUrl || DEFAULTS.privacyUrl
+        if (!href) return
+
+        const blocks = this.instance.querySelectorAll('.legal-consent-container .hs-richtext')
+        blocks.forEach((block) => this.linkPhrase(block, PRIVACY_PHRASE, href))
+    }
+
+    // Wrap the first occurrence of `phrase` in every text node under `root`,
+    // leaving the surrounding copy untouched. Collect first, mutate after —
+    // splitting text nodes while the walker is live would revisit the halves.
+    linkPhrase(root, phrase, href)
+    {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+        const targets = []
+
+        while (walker.nextNode())
+        {
+            const node = walker.currentNode
+
+            // Never nest an anchor, in case HubSpot starts shipping one itself
+            if (node.parentElement?.closest('a')) continue
+
+            const index = node.textContent.toLowerCase().indexOf(phrase.toLowerCase())
+            if (index !== -1) targets.push({ node, index })
+        }
+
+        targets.forEach(({ node, index }) =>
+        {
+            // node -> [before][phrase][after], then swap the middle for the link
+            const match = node.splitText(index)
+            match.splitText(phrase.length)
+
+            const link = document.createElement('a')
+            link.href = href
+            link.className = 'hs-privacy-link'
+            link.target = '_blank'
+            link.rel = 'noopener noreferrer'
+            link.textContent = match.textContent
+
+            match.replaceWith(link)
+        })
     }
 
     // Optional cleanup of HubSpot rich-text rows so they don't break a tight
