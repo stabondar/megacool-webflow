@@ -78,6 +78,10 @@
     }
 
     a {
+        // Anchors render as blocks upstream, which drops a mid-sentence link
+        // onto its own line and strands the punctuation after it on the next
+        // one — same fix as the consent banner and the HubSpot consent copy.
+        display: inline-block;
         color: inherit;
         text-decoration: underline;
         text-underline-offset: 0.15em;
