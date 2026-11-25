@@ -1,6 +1,7 @@
 import HubSpotLoader from '@utils/HubSpotLoader'
 import TextHover from '@modules/TextHover.js'
 import { ScrollTrigger } from '@utils/GSAP.js'
+import { locale, localize } from '@utils/Locale.js'
 
 // Client-provided values (MegaCool EU portal). Each can be overridden per
 // element with data-portal-id / data-form-id / data-region so the same module
@@ -15,6 +16,41 @@ const DEFAULTS = {
 // HubSpot stores the GDPR consent copy as a plain string, so the "Privacy
 // Policy" it mentions arrives as text with no link. Matched case-insensitively.
 const PRIVACY_PHRASE = 'Privacy Policy'
+
+const CONSENT = [
+    'By checking the boxes below, you agree to receive communications from MegaCool Technologies. You can unsubscribe anytime.',
+    'I agree to receive other communications from MegaCool Technologies.',
+    'We care about your privacy. Learn how we handle your data in our Privacy Policy.',
+    'To deliver your service, we need your permission to store and process your personal data.',
+]
+
+// HubSpot translates its own validation messages via `locale`; consent rows match CONSENT by index
+const COPY = {
+    'zh-cn': {
+        labels: { firstname: '名字', lastname: '姓', email: '电子邮箱', company: '公司名称', message: '留言内容' },
+        submit: '发送消息',
+        privacy: '隐私政策',
+        thanks: '<p><strong>谢谢！</strong></p><p>我们已收到您的留言。我们的团队成员将审阅您的信息，并尽快与您联系。</p>',
+        consent: [
+            '勾选下方复选框即表示您同意接收来自 MegaCool Technologies 的资讯。您可以随时取消订阅。',
+            '我同意接收来自 MegaCool Technologies 的其他资讯。',
+            '我们重视您的隐私。请查阅我们的《隐私政策》，了解我们如何处理您的数据。',
+            '为了向您提供服务，我们需要征得您的同意，以便存储和处理您的个人数据。',
+        ],
+    },
+    'zh-tw': {
+        labels: { firstname: '名字', lastname: '姓', email: '電子郵箱', company: '公司名稱', message: '留言內容' },
+        submit: '發送消息',
+        privacy: '隱私政策',
+        thanks: '<p><strong>謝謝！</strong></p><p>我們已收到您的留言。我們的團隊成員將審閱您的資訊，並儘快與您聯繫。</p>',
+        consent: [
+            '勾選下方複選框即表示您同意接收來自 MegaCool Technologies 的資訊。您可以隨時取消訂閱。',
+            '我同意接收來自 MegaCool Technologies 的其他資訊。',
+            '我們重視您的隱私。請查閱我們的《隱私政策》，了解我們如何處理您的資料。',
+            '為了向您提供服務，我們需要徵得您的同意，以便存儲和處理您的個人資料。',
+        ],
+    },
+}
 
 /**
  * Renders a HubSpot form into [data-module="hubspot-form"]. Mirrors the
@@ -87,10 +123,17 @@ export default class HubspotForm
             this.instance.id = `hubspot-form-${formId}`
         }
 
+        const copy = COPY[locale]
+
         window.hbspt.forms.create({
             region,
             portalId,
             formId,
+            locale,
+            ...(copy && {
+                translations: { [locale]: { submitText: copy.submit, fieldLabels: copy.labels } },
+                inlineMessage: copy.thanks,
+            }),
             target: `#${this.instance.id}`,
             // Raw HTML, no HubSpot CSS — our SCSS owns the look
             cssRequired: '',
@@ -113,6 +156,7 @@ export default class HubspotForm
 
         if (this.instance.dataset.stripRichtext === 'true') this.stripRichtext()
 
+        this.translateConsent()
         this.linkifyPrivacyPolicy()
 
         // The injected form grows the document; let it lay out, then re-measure
@@ -192,8 +236,26 @@ export default class HubspotForm
         const href = this.instance.dataset.privacyUrl || DEFAULTS.privacyUrl
         if (!href) return
 
+        const target = href.startsWith('/') ? localize(href) : href
+        const phrase = COPY[locale]?.privacy ?? PRIVACY_PHRASE
+
         const blocks = this.instance.querySelectorAll('.legal-consent-container .hs-richtext')
-        blocks.forEach((block) => this.linkPhrase(block, PRIVACY_PHRASE, href))
+        blocks.forEach((block) => this.linkPhrase(block, phrase, target))
+    }
+
+    translateConsent()
+    {
+        const copy = COPY[locale]
+        if (!copy) return
+
+        const rows = this.instance.querySelectorAll(
+            '.legal-consent-container .hs-richtext, .legal-consent-container label span'
+        )
+        rows.forEach((row) =>
+        {
+            const index = CONSENT.indexOf(row.textContent.replace(/\s+/g, ' ').trim())
+            if (index !== -1) row.textContent = copy.consent[index]
+        })
     }
 
     // Wrap the first occurrence of `phrase` in every text node under `root`,

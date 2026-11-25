@@ -1,4 +1,5 @@
 import { consent, CATEGORIES } from '@utils/Consent.js'
+import { localize, pick } from '@utils/Locale.js'
 
 /**
  * The consent UI: the first-visit banner and the preference centre behind it.
@@ -17,45 +18,127 @@ import { consent, CATEGORIES } from '@utils/Consent.js'
  */
 
 const COPY = {
-    banner: {
-        title: 'We value your privacy',
-        body: 'We use cookies and similar technologies to improve your browsing experience, analyse website traffic, and provide relevant content.',
-        detail: 'The details regarding the types of cookies, their purpose and the third parties involved are described below and in our {policy}. Please click on “Accept All” to consent to our usage of cookies in order to have the best possible experience on our websites. You can also set your preferences or reject cookies (except for strictly necessary cookies).',
-        policyLabel: 'Cookie Policy',
-        policyHref: '/cookie-policy',
-    },
-    panel: {
-        eyebrow: 'Cookie Preference Center',
-        title: 'Cookie Preferences',
-        body: 'Please select the cookie categories you consent to. You can update your preferences or withdraw your consent at any time.',
-    },
-    actions: {
-        accept: 'Accept All',
-        reject: 'Reject All',
-        manage: 'Manage Preferences',
-        save: 'Save Preferences',
-        close: 'Close cookie preferences',
-    },
-    categories: {
-        necessary: {
-            title: 'Strictly Necessary Cookies',
-            status: 'Always active',
-            body: 'These cookies are required for the basic operation of our website. They enable essential functions such as security, navigation, and remembering your privacy preferences. These cookies cannot be disabled.',
+    en: {
+        banner: {
+            title: 'We value your privacy',
+            body: 'We use cookies and similar technologies to improve your browsing experience, analyse website traffic, and provide relevant content.',
+            detail: 'The details regarding the types of cookies, their purpose and the third parties involved are described below and in our {policy}. Please click on “Accept All” to consent to our usage of cookies in order to have the best possible experience on our websites. You can also set your preferences or reject cookies (except for strictly necessary cookies).',
+            policyLabel: 'Cookie Policy',
         },
-        performance: {
-            title: 'Performance Cookies',
-            body: 'These cookies help us understand how visitors use our website by collecting anonymous statistical information. They allow us to improve website performance and user experience.',
+        panel: {
+            eyebrow: 'Cookie Preference Center',
+            title: 'Cookie Preferences',
+            body: 'Please select the cookie categories you consent to. You can update your preferences or withdraw your consent at any time.',
         },
-        functional: {
-            title: 'Functional Cookies',
-            body: 'These cookies allow the website to remember your choices and provide enhanced features, such as language preferences or embedded content.',
+        actions: {
+            accept: 'Accept All',
+            reject: 'Reject All',
+            manage: 'Manage Preferences',
+            save: 'Save Preferences',
+            close: 'Close cookie preferences',
         },
-        marketing: {
-            title: 'Marketing Cookies',
-            body: 'These cookies are used to provide more relevant advertising and measure the effectiveness of marketing campaigns. They may be placed by third-party providers.',
+        categories: {
+            necessary: {
+                title: 'Strictly Necessary Cookies',
+                status: 'Always active',
+                body: 'These cookies are required for the basic operation of our website. They enable essential functions such as security, navigation, and remembering your privacy preferences. These cookies cannot be disabled.',
+            },
+            performance: {
+                title: 'Performance Cookies',
+                body: 'These cookies help us understand how visitors use our website by collecting anonymous statistical information. They allow us to improve website performance and user experience.',
+            },
+            functional: {
+                title: 'Functional Cookies',
+                body: 'These cookies allow the website to remember your choices and provide enhanced features, such as language preferences or embedded content.',
+            },
+            marketing: {
+                title: 'Marketing Cookies',
+                body: 'These cookies are used to provide more relevant advertising and measure the effectiveness of marketing campaigns. They may be placed by third-party providers.',
+            },
+        },
+    },
+    'zh-cn': {
+        banner: {
+            title: '我们重视您的隐私',
+            body: '我们使用 Cookie 及类似技术来改善您的浏览体验、分析网站流量并提供相关内容。',
+            detail: '有关 Cookie 的类型、用途及所涉及第三方的详细信息，请参阅下文及我们的《{policy}》。请点击“全部接受”，同意我们使用 Cookie，以便在我们的网站上获得最佳体验。您也可以设置偏好或拒绝 Cookie（绝对必要的 Cookie 除外）。',
+            policyLabel: 'Cookie 政策',
+        },
+        panel: {
+            eyebrow: 'Cookie 偏好中心',
+            title: 'Cookie 偏好设置',
+            body: '请选择您同意使用的 Cookie 类别。您可以随时更新偏好设置或撤回同意。',
+        },
+        actions: {
+            accept: '全部接受',
+            reject: '全部拒绝',
+            manage: '管理偏好',
+            save: '保存偏好',
+            close: '关闭 Cookie 偏好设置',
+        },
+        categories: {
+            necessary: {
+                title: '绝对必要的 Cookie',
+                status: '始终启用',
+                body: '这些 Cookie 是网站基本运行所必需的，可实现安全、导航以及记住您的隐私偏好等基本功能。这些 Cookie 无法停用。',
+            },
+            performance: {
+                title: '性能 Cookie',
+                body: '这些 Cookie 通过收集匿名统计信息，帮助我们了解访客如何使用我们的网站，从而改进网站性能和用户体验。',
+            },
+            functional: {
+                title: '功能 Cookie',
+                body: '这些 Cookie 使网站能够记住您的选择并提供增强功能，例如语言偏好或嵌入内容。',
+            },
+            marketing: {
+                title: '营销 Cookie',
+                body: '这些 Cookie 用于提供更相关的广告并衡量营销活动的效果，可能由第三方提供商设置。',
+            },
+        },
+    },
+    'zh-tw': {
+        banner: {
+            title: '我們重視您的隱私',
+            body: '我們使用 Cookie 及類似技術來改善您的瀏覽體驗、分析網站流量並提供相關內容。',
+            detail: '有關 Cookie 的類型、用途及所涉及第三方的詳細資訊，請參閱下文及我們的《{policy}》。請點擊「全部接受」，同意我們使用 Cookie，以便在我們的網站上獲得最佳體驗。您也可以設定偏好或拒絕 Cookie（絕對必要的 Cookie 除外）。',
+            policyLabel: 'Cookie 政策',
+        },
+        panel: {
+            eyebrow: 'Cookie 偏好中心',
+            title: 'Cookie 偏好設定',
+            body: '請選擇您同意使用的 Cookie 類別。您可以隨時更新偏好設定或撤回同意。',
+        },
+        actions: {
+            accept: '全部接受',
+            reject: '全部拒絕',
+            manage: '管理偏好',
+            save: '儲存偏好',
+            close: '關閉 Cookie 偏好設定',
+        },
+        categories: {
+            necessary: {
+                title: '絕對必要的 Cookie',
+                status: '始終啟用',
+                body: '這些 Cookie 是網站基本運作所必需的，可實現安全、導覽以及記住您的隱私偏好等基本功能。這些 Cookie 無法停用。',
+            },
+            performance: {
+                title: '效能 Cookie',
+                body: '這些 Cookie 透過收集匿名統計資訊，協助我們了解訪客如何使用我們的網站，從而改善網站效能和使用者體驗。',
+            },
+            functional: {
+                title: '功能性 Cookie',
+                body: '這些 Cookie 讓網站能夠記住您的選擇並提供強化功能，例如語言偏好或嵌入內容。',
+            },
+            marketing: {
+                title: '行銷 Cookie',
+                body: '這些 Cookie 用於提供更相關的廣告並衡量行銷活動的成效，可能由第三方供應商設定。',
+            },
         },
     },
 }
+
+const TEXT = pick(COPY)
+const POLICY_HREF = localize('/cookie-policy')
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'
 
@@ -101,7 +184,7 @@ export default class CookieConsent
         this.root.className = 'cc'
         this.root.setAttribute('data-cookie-consent', '')
 
-        const { banner, panel, actions } = COPY
+        const { banner, panel, actions } = TEXT
         const [detailBefore, detailAfter] = banner.detail.split('{policy}')
 
         this.root.innerHTML = `
@@ -109,7 +192,7 @@ export default class CookieConsent
                 <div class="cc__banner-text">
                     <h2 class="cc__title">${banner.title}</h2>
                     <p class="cc__body">${banner.body}</p>
-                    <p class="cc__body cc__body--small">${detailBefore}<a class="cc__link" href="${banner.policyHref}">${banner.policyLabel}</a>${detailAfter}</p>
+                    <p class="cc__body cc__body--small">${detailBefore}<a class="cc__link" href="${POLICY_HREF}">${banner.policyLabel}</a>${detailAfter}</p>
                 </div>
                 <div class="cc__actions">
                     <button type="button" class="cc__btn cc__btn--solid" data-cc-action="accept">${actions.accept}</button>
@@ -148,7 +231,7 @@ export default class CookieConsent
 
     categoryMarkup(category)
     {
-        const copy = COPY.categories[category]
+        const copy = TEXT.categories[category]
         if (!copy) return ''
 
         // Necessary is stated, not offered — an always-on toggle that looks

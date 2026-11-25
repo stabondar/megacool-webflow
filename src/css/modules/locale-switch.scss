@@ -1,0 +1,16 @@
+// Base pill lives in Webflow (.locale-switch, .locale-switch__link); these are the states its classes can't express
+.locale-switch__link[aria-current='true'] {
+    background-color: var(--_colors---white);
+    color: var(--_colors---black);
+    pointer-events: none;
+}
+
+.locale-switch__link.is--menu[aria-current='true'] {
+    background-color: transparent;
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
+}
+
+.nav.black .locale-switch__link:not(.is--menu) {
+    color: var(--_colors---black);
+}

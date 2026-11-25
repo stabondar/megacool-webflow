@@ -1,4 +1,5 @@
 import { gsap, ScrollTrigger, SplitText } from 'gsap/all'
+import { splitVars } from '@utils/Locale.js'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
@@ -32,7 +33,7 @@ export default class Title
         this.textEl = this.instance.querySelectorAll('h1, h2, h3, h4, h5, p')
         this.text = this.textEl.length > 0 ? this.textEl : this.instance
 
-        this.split = new SplitText(this.text, { type: 'lines' })
+        this.split = new SplitText(this.text, { type: 'lines', ...splitVars })
         this.splitSecond = new SplitText(this.split.lines, { type: 'lines' })
         // clip-path instead of overflow+padding: zero layout impact (the old
         // padding/negative-margin pair drifted line spacing via margin

@@ -1,0 +1,25 @@
+// Alliance has no CJK glyphs, so <html lang> picks the system fallback (PingFang, YaHei, JhengHei); only the Latin-tuned spacing needs undoing
+html:lang(zh) {
+    :is(
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .h-h1,
+        .h-h2,
+        .h-h3,
+        .h-h4,
+        .h-h5,
+        .paragraph.is--huge,
+        .numbers,
+        .bold-nav-full__link
+    ) {
+        letter-spacing: 0;
+    }
+
+    :is(h1, h2, h3, h4, h5, h6, .h-h1, .h-h2, .h-h3, .h-h4, .h-h5, .paragraph.is--huge) {
+        line-height: 1.25;
+    }
+}

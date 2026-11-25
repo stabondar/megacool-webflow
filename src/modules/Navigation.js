@@ -1,3 +1,5 @@
+import { isCJK } from '@utils/Locale.js'
+
 const STATUS_ATTR = 'data-navigation-status'
 const ACTIVE = 'active'
 const NOT_ACTIVE = 'not-active'
@@ -28,6 +30,8 @@ export default class Navigation
     {
         if (document.documentElement.classList.contains('w-editor')) return
 
+        if (isCJK) this.mirrorLabels()
+
         if (!this.instance.getAttribute(STATUS_ATTR))
         {
             this.instance.setAttribute(STATUS_ATTR, NOT_ACTIVE)
@@ -53,6 +57,21 @@ export default class Navigation
         document.addEventListener('keydown', this.onKeydown)
 
         this.bound = true
+    }
+
+    // Webflow can't localize the menu's custom-element labels, so reuse the translated desktop ones
+    mirrorLabels()
+    {
+        const labels = new Map(
+            [...document.querySelectorAll('.toggle-switch__btn')].map((btn) => [btn.pathname, btn.textContent.trim()])
+        )
+
+        this.instance.querySelectorAll('.bold-nav-full__link').forEach((link) =>
+        {
+            const label = labels.get(link.pathname)
+            const text = link.querySelector('.bold-nav-full__link-text')
+            if (label && text) text.textContent = label
+        })
     }
 
     isOpen()

@@ -5,6 +5,7 @@ import EventEmitter from '@utils/EventEmitter.js'
 import { RestartWebflow } from '@utils/RestartWebflow.js'
 import { defaultTransition } from '@transitions/schema/defaultTransition.js'
 import { CheckPages } from '@transitions/CheckPages.js'
+import { ensureLang, isCrossLocale, syncLocaleLinks } from '@utils/Locale.js'
 import FontFaceObserver from 'fontfaceobserver'
 
 let instance = null
@@ -21,6 +22,7 @@ export default class app extends EventEmitter
         this.app = null
 
         history.scrollRestoration = 'manual'
+        ensureLang()
 
         this.loadFonts().then(() => this.init())
     }
@@ -44,18 +46,23 @@ export default class app extends EventEmitter
             debug: true,
             timeout: 7000,
             preventRunning: true,
-            prevent: ({ el, event }) =>
+            prevent: ({ el, event, href }) =>
             {
+                // The nav, footer and <html lang> live outside the container, so a language switch needs a real load
+                const crossLocale = isCrossLocale(href || el.href)
+
                 if (event.type == 'click')
                 {
                     event.preventDefault()
                     event.stopPropagation()
 
-                    if (el.classList.contains('go')) window.location = el.href
+                    if (el.classList.contains('go') || crossLocale) window.location = el.href
 
                     if (el.classList.contains('prevent')) return true
                     if (el.href.includes('#')) return true
                 }
+
+                return crossLocale
             },
             transitions: [
                 {
@@ -86,6 +93,7 @@ export default class app extends EventEmitter
         barba.hooks.after(async (data) =>
         {
             await RestartWebflow()
+            syncLocaleLinks(data.next.html ? new DOMParser().parseFromString(data.next.html, 'text/html') : document)
         })
     }
 
@@ -127,6 +135,8 @@ export default class app extends EventEmitter
         // changes).
         const navToggle = document.querySelector('[data-module="navigation"]')
         if (navToggle) app.navigation = new Navigation.default(navToggle, app, main, true)
+
+        syncLocaleLinks()
 
         // Consent UI: same story as the nav — it injects itself into <body>,
         // outside the Barba container, so it is created once here and never

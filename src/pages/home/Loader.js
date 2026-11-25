@@ -1,4 +1,5 @@
 import { gsap, SplitText } from '@utils/GSAP.js'
+import { splitVars } from '@utils/Locale.js'
 
 import PageEnter from '@utils/PageEnter.js'
 
@@ -32,7 +33,7 @@ export default class Loader extends PageEnter
     // insets keep ascenders and descenders unclipped.
     words(el)
     {
-        const split = new SplitText(el, { type: 'lines, words' })
+        const split = new SplitText(el, { type: 'lines, words', ...splitVars })
         gsap.set(split.lines, { clipPath: 'inset(-0.15em -0.1em)' })
         this.splits.push(split)
         return split.words

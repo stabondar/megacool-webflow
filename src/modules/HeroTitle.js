@@ -1,3 +1,5 @@
+import { isCJK } from '@utils/Locale.js'
+
 let instanceCount = 0
 const DESKTOP_QUERY = '(min-width: 992px)'
 
@@ -39,6 +41,9 @@ export default class HeroTitle
 
     init()
     {
+        // Fitting a handful of full-width CJK glyphs to the row blows the title up ~2x past the Latin scale
+        if (isCJK) return
+
         this.parent = this.instance.parentElement
         if (!this.parent) return
 
